@@ -1,0 +1,1 @@
+{"name":"fun-td","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","serve":"npx --yes serve ."}}

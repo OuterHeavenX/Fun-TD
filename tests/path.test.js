@@ -1,0 +1,1 @@
+import test from'node:test';import assert from'node:assert/strict';import{Path}from'../src/world/Path.js';test('path interpolation follows segments',()=>{const p=new Path([[0,0],[100,0],[100,100]]);assert.deepEqual({...p.at(50)},{x:50,y:0,angle:0});const q=p.at(150);assert.equal(q.x,100);assert.equal(q.y,50)});

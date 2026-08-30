@@ -1,0 +1,1 @@
+import test from'node:test';import assert from'node:assert/strict';import{WAVES}from'../src/data/waves.js';test('campaign has 20 deliberate waves and boss',()=>{assert.equal(WAVES.length,20);assert.equal(WAVES[19].groups[0].type,'boss');assert.ok(WAVES.reduce((n,w)=>n+w.groups.reduce((m,g)=>m+g.count,0),0)>1000)});

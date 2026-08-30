@@ -1,0 +1,1 @@
+export const resultMarkup=(victory,s)=>`<section><div class="eyebrow">${victory?'OUTPOST SECURED':'CORE OVERRUN'}</div><h1>${victory?'VICTORY':'DEFEAT'}</h1><p>Wave ${s.wave} · ${s.kills} enemies defeated<br>${s.goldEarned} gold earned · ${s.stars||0} stars</p><button id="retry">REPLAY DUSTWALL</button><button id="home" class="secondary">MAIN MENU</button></section>`;

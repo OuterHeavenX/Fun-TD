@@ -53,7 +53,11 @@ No external art, fonts, music, or sound files are used. Visuals are original pro
 
 ## Tests
 
-Run `npm test` (Node is needed only for tests). Deterministic tests cover upgrade prices, refunds, armor, path interpolation, target selection, wave structure, corrupt saves, and save migration.
+Run `npm test` (Node is needed only for tests). Deterministic tests cover upgrade prices, refunds, armor, path interpolation, target selection, wave structure, corrupt saves, save migration, 250-enemy spatial indexing, and duplicate-loop prevention across ten restart attempts.
+
+Development mode is available only through a query parameter. Open `?dev=1` for the live performance panel or `?dev=stress` for a reproducible 250-enemy mixed swarm with ten maximum-level towers. The panel reports FPS, frame time, active enemies, projectiles, particles, pool usage, and average target-query time.
+
+Run `npm run balance` for a deterministic per-wave report of authored enemies, armor-adjusted effective health, available kill/completion gold, maximum breach damage, spawn duration, and pressure. It is an economy/content audit, not a substitute for human playtesting.
 
 Manual QA checklist:
 
@@ -70,8 +74,10 @@ Manual QA checklist:
 
 ### Validation record (2026-08-30)
 
-- `npm test`: 8/8 passing (economy, armor, path, targeting, wave data, save recovery/migration).
+- `npm test`: 11/11 passing (economy, armor, path, targeting, wave data/pressure, save recovery/migration, 250-enemy spatial indexing, and duplicate-loop prevention).
 - Codex in-app Chromium browser at `http://localhost:8765`: title and HUD loaded, run started, canvas pad opened the full build menu, Bolt Bastion purchase changed gold from 420 to 310, tower panel rendered, and combat continued with zero captured console warnings/errors.
+- Development stress scenario in the available high-refresh Chromium session: started with 250 mixed enemies and ten level-5 towers; sampled at 163 surviving enemies, 5 projectiles, and 196 particles at approximately 7.8 ms/rendered frame with no captured warnings/errors. A separate paused sample held enemies/projectiles/particles/pool counts exactly constant for one second. This is desktop-browser evidence, not phone hardware evidence.
+- `npm run balance`: wave 1 measured 1,047 armor-adjusted effective HP; wave 20 measured 41,740. Wave 19 is the highest burst-pressure wave, while wave 20 is the largest total-health encounter.
 - Static campaign count: 1,246 authored spawns before Splitter children, exceeding the 150-kill target.
 - Not executed: physical iPhone/Android/iPad testing, ten full manual retries, full 20-wave human playthrough, and hardware profiling at 250 simultaneous enemies.
 

@@ -1,0 +1,1 @@
+import{damageAfterArmor}from'../data/balance.js';export const applyDamage=(enemy,damage,pierce=0)=>{const dealt=damageAfterArmor(damage,enemy.armor,pierce)*(enemy.shield>0?.55:1);enemy.hp-=dealt;enemy.flash=.08;return dealt};

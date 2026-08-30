@@ -1,0 +1,1 @@
+export class InputManager{constructor(canvas,renderer,onTap){this.handler=e=>{e.preventDefault();onTap(renderer.worldPoint(e))};canvas.addEventListener('pointerdown',this.handler,{passive:false})}destroy(canvas){canvas.removeEventListener('pointerdown',this.handler)}}

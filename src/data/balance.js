@@ -1,5 +1,5 @@
-export const ECONOMY={startGold:700,sellRate:.8,waveBase:45,flawlessBonus:60};
-export const LEVEL_MULTIPLIERS=[1,1.3,1.7,2.2,2.9];
+export const ECONOMY={startGold:1200,sellRate:.9,waveBase:60,flawlessBonus:100};
+export const LEVEL_MULTIPLIERS=[1,1.12,1.3,1.55,1.9];
 export const upgradeCost=(base,level)=>Math.round(base*LEVEL_MULTIPLIERS[level]);
 export const refundFor=(invested)=>Math.floor(invested*ECONOMY.sellRate);
 export const damageAfterArmor=(damage,armor,pierce=0)=>Math.max(1,damage*(1-Math.max(0,armor-pierce)));

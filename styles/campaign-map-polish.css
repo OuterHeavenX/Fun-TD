@@ -1,0 +1,20 @@
+/* v0.6.1 campaign map polish */
+.campaign-map-card{background:linear-gradient(160deg,#214d5a 0 34%,#678066 44%,#9c794c 61%,#6e5a42 100%)}
+.campaign-map-world{background:radial-gradient(circle at 16% 72%,#e0a25a 0 17%,#b77942 30%,transparent 41%),radial-gradient(circle at 75% 20%,#f1fbff 0 13%,#b7d5e4 24%,transparent 41%),linear-gradient(150deg,#315f62 0 38%,#6b8064 46%,#a28354 61% 100%)}
+.campaign-map-world:after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 48%,transparent 0 42%,#06121a36 80%,#06121a66 100%);pointer-events:none}
+.terrain{position:absolute;z-index:1;pointer-events:none;opacity:.72}
+.terrain-dunes{left:3%;bottom:9%;width:44%;height:29%;background:repeating-radial-gradient(ellipse at 28% 82%,transparent 0 25px,#8b5b343c 27px 31px,transparent 33px 54px);transform:rotate(-8deg)}
+.terrain-ridge{left:8%;top:40%;width:42%;height:17%;clip-path:polygon(0 78%,13% 50%,25% 72%,38% 32%,51% 64%,66% 24%,79% 59%,100% 36%,100% 100%,0 100%);background:linear-gradient(#385747aa,#243c34cc);filter:drop-shadow(0 7px 5px #0005)}
+.terrain-ice{right:2%;top:10%;width:47%;height:30%;background:linear-gradient(125deg,transparent 0 14%,#ffffff38 15% 17%,transparent 18% 31%,#ffffff33 32% 34%,transparent 35% 100%);border-radius:48%;transform:rotate(7deg)}
+.terrain-fog{right:1%;bottom:5%;width:45%;height:31%;background:radial-gradient(ellipse at center,#18232d99 0 42%,#0e161dcc 68%,transparent 72%);filter:blur(2px)}
+.map-deco{z-index:2}.map-deco.d3{left:20%;bottom:28%;font:900 24px system-ui;color:#6d4c32;transform:rotate(-14deg)}.map-deco.d4{left:8%;bottom:38%;font-size:36px;color:#efd69a;opacity:.42}.map-deco.f3{right:8%;top:29%;font-size:38px;color:#d8f5ff}.map-deco.f4{right:38%;top:14%;font-size:32px;color:#fff;opacity:.8}
+.route-main.route-complete{stroke:#f0d492;filter:drop-shadow(0 0 7px #ffd76a99)}
+.route-main.route-complete~.route-dash{animation:routeMarch 1.25s linear infinite}
+@keyframes routeMarch{to{stroke-dashoffset:-24}}
+.current-marker{position:absolute;z-index:7;transform:translate(-50%,-50%);pointer-events:none;transition:left .25s ease,top .25s ease}.current-marker.current-1{left:23%;top:61%}.current-marker.current-2{left:67%;top:22%}.current-marker span{display:block;padding:5px 9px;border-radius:999px;background:#ffd94c;color:#1d2832;border:2px solid #fff4a4;font:900 9px system-ui;letter-spacing:.7px;box-shadow:0 3px 0 #9c7716,0 0 0 5px #ffd94c2b;animation:markerPulse 1.25s ease-in-out infinite}
+.current-marker:after{content:'';display:block;width:0;height:0;margin:5px auto 0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #ffd94c}
+@keyframes markerPulse{50%{transform:scale(1.06);box-shadow:0 3px 0 #9c7716,0 0 0 11px #ffd94c11}}
+.sector-node.current .node-orb{box-shadow:0 7px 0 #0e2739,0 0 0 5px #fff4a4,0 0 34px #ffd94ccc}
+.sector-node .node-title{display:block;min-height:34px;padding:5px 6px;line-height:1.05}.sector-node .node-stars{display:block;min-height:18px;margin-top:5px;letter-spacing:1px}.sector-node .node-stars .lock-copy{font-size:9px;letter-spacing:.7px;white-space:nowrap}.sector-node .node-future{display:block;width:max-content;max-width:106px;margin:5px auto 0;padding:4px 7px;border-radius:8px;background:#202933e8;color:#aeb8c0;font:900 9px system-ui;letter-spacing:.7px;white-space:nowrap;box-shadow:0 2px 7px #0006}.sector-node.n3 .node-stars{margin-top:3px}.sector-node.n3{width:120px}
+.map-legend{padding:11px 13px}.map-current-copy{color:#8ed6ff;text-align:right;white-space:nowrap}.map-lock-note{display:none}
+@media(max-width:520px){.current-marker.current-1{left:23%;top:61.5%}.current-marker.current-2{left:67%;top:22.5%}.current-marker span{font-size:8px;padding:4px 7px}.sector-node.n3{width:104px}.sector-node .node-future{max-width:98px;font-size:8px}.map-current-copy{font-size:8px}.map-legend{padding:9px 10px}.terrain-ridge{opacity:.5}}

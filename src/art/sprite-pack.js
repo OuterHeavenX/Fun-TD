@@ -433,11 +433,17 @@ function installClassic(game, { path, theme, props, towers, base }) {
   game.drawProjectile = function (c, p) { drawProjectileAt(c, p); };
 }
 
-/* Sectors 4 and 6: drawX(thing), context held on the instance. */
-function installCompact(game, { path, theme, props, base, ctxKey }) {
-  // These sectors draw their build pads inline inside draw(), so pads keep
-  // their own art here; towers, enemies and terrain are what we can reach.
+/* Sectors 4, 5 and 6: drawX(thing), context held on the instance.
+ *
+ * These sectors apply their lane jitter differently — some offset both axes,
+ * some only the vertical — so the caller supplies it rather than the pack
+ * guessing and drawing every unit a few pixels off its hitbox. Pads are only
+ * restyled where the sector exposes a drawPad to override. */
+const BOTH_AXES = e => [(e.lane || 0) * 0.25, (e.lane || 0) * 0.25];
+
+function installCompact(game, { path, theme, props, towers, base, ctxKey, laneOffset = BOTH_AXES }) {
   const world = buildWorld(path, theme, props);
+  const floor = cheapestCost(towers);
   const original = Object.getPrototypeOf(game);
   const ctx = () => game[ctxKey];
 
@@ -453,13 +459,20 @@ function installCompact(game, { path, theme, props, base, ctxKey }) {
       drawCoreAt(ctx(), base.x, base.y, this.baseHp / max, (this.time || performance.now() / 1000));
     };
   }
+  // Sectors that expose a drawPad, or check for one before drawing their own,
+  // pick this up; the rest simply never call it.
+  game.drawPad = function (p) {
+    if (p.tower) return;
+    drawPadAt(ctx(), p, this.gold >= floor, this.selectedPad === p,
+      this.time || performance.now() / 1000);
+  };
   game.drawTower = function (t) {
     if (!drawTowerAt(ctx(), t)) original.drawTower.call(this, t);
   };
   game.drawEnemy = function (e) {
     const c = ctx();
-    const lane = (e.lane || 0) * 0.25;
-    const x = e.x + lane, y = e.y + lane;
+    const [dx, dy] = laneOffset(e);
+    const x = e.x + dx, y = e.y + dy;
     if (!drawEnemyAt(c, e, x, y)) { original.drawEnemy.call(this, e); return; }
     drawHealthBarAt(c, e, x, y);
   };
@@ -471,7 +484,7 @@ window.FUN_TD_ART = {
   towerArt, enemyArt,
   paintTerrain, paintRoute, paintProps, paintVignette, buildWorld,
   drawCoreAt, drawPadAt, drawTowerAt, drawEnemyAt, drawHealthBarAt, drawProjectileAt,
-  installClassic, installCompact,
+  installClassic, installCompact, BOTH_AXES,
 
   /* The runtimes boot asynchronously; poll briefly rather than racing them. */
   whenReady(callback, timeoutMs = 9000) {

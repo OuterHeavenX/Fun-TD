@@ -22,6 +22,8 @@ const SHAPE = {
   2: { install: 'installClassic' },
   3: { install: 'installClassic' },
   4: { install: 'installCompact', ctxKey: 'ctx' },
+  // Sector 05 offsets a unit's lane on the vertical axis only.
+  5: { install: 'installCompact', ctxKey: 'x', laneOffset: e => [0, e.lane || 0] },
   6: { install: 'installCompact', ctxKey: 'x' }
 };
 
@@ -61,11 +63,7 @@ function scatter(path, base, theme) {
 ART.whenReady(game => {
   const shape = SHAPE[sector];
   const model = window.FUN_TD_SECTOR_MODEL;
-  if (!shape) {
-    // Sector 05 paints towers, enemies and terrain inline inside draw() with no
-    // overridable methods, so there is nothing here to hook. It keeps its own art.
-    return;
-  }
+  if (!shape) return;
   if (!model || !model.MAP || !Array.isArray(model.MAP.path)) {
     console.warn('FUN TD art: sector', sector, 'exposed no route; keeping its own art');
     return;
@@ -81,7 +79,8 @@ ART.whenReady(game => {
     props: scatter(path, base, theme),
     towers: model.TOWERS || {},
     base,
-    ctxKey: shape.ctxKey
+    ctxKey: shape.ctxKey,
+    laneOffset: shape.laneOffset
   });
 });
 })();

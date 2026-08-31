@@ -20,7 +20,7 @@
   </header>
   <div id="subhud"><span>WAVE <b id="wave">1</b>/20</span><span>BASE <b id="hp">100</b></span></div>
   <div id="waveIntel" aria-live="polite"></div><div id="milestoneAlert" class="milestone-alert" aria-live="assertive"></div>
-  <div id="versionBadge" aria-label="Game version">v0.6.0-alpha</div><div id="toast"></div><div id="towerMenu" class="panel hidden"></div>
+  <div id="versionBadge" aria-label="Game version">v0.6.1-alpha</div><div id="toast"></div><div id="towerMenu" class="panel hidden"></div>
   <button id="startWave" class="start-wave">START WAVE 1</button>
   <div id="cornerControls"><button id="speed">1×</button><button id="pause">Ⅱ</button><button id="sound">♪</button></div>
   <div id="pauseFlowBadge">PAUSED</div>
@@ -30,7 +30,10 @@
     <section class="campaign-map-card">
       <div class="campaign-map-world"></div>
       <div class="map-region dust"></div><div class="map-region frost"></div><div class="map-region classified"></div>
-      <div class="map-deco d1">🌴</div><div class="map-deco d2">⛰</div><div class="map-deco f1">❄</div><div class="map-deco f2">▲</div><div class="map-deco c1">?</div>
+      <div class="terrain terrain-dunes"></div><div class="terrain terrain-ridge"></div><div class="terrain terrain-ice"></div><div class="terrain terrain-fog"></div>
+      <div class="map-deco d1">🌴</div><div class="map-deco d2">⛰</div><div class="map-deco d3">▰</div><div class="map-deco d4">⌁</div>
+      <div class="map-deco f1">❄</div><div class="map-deco f2">▲</div><div class="map-deco f3">▲</div><div class="map-deco f4">✦</div>
+      <div class="map-deco c1">?</div>
       <svg class="campaign-map-route" viewBox="0 0 720 940" aria-hidden="true">
         <path class="route-shadow" d="M150 700 C210 650 250 590 310 520 S430 405 470 330 S505 230 500 190"/>
         <path class="route-main route-to-frost" d="M150 700 C210 650 250 590 310 520 S430 405 470 330 S505 230 500 190"/>
@@ -38,15 +41,16 @@
         <path class="route-locked" d="M500 190 C560 300 595 440 565 585 S545 690 555 735"/>
       </svg>
       <div class="campaign-map-head"><div><small>FUN TD OPERATIONS</small><h2>CAMPAIGN MAP</h2></div><div class="campaign-map-actions"><button id="campaignMapCommand">COMMAND</button><button id="campaignMapClose">RETURN</button></div></div>
-      <button class="sector-node n1" data-map-sector="1"><span class="node-orb">01</span><span class="node-title">DUSTWALL DEFENSE</span><span class="node-stars"></span></button>
-      <button class="sector-node frost n2" data-map-sector="2"><span class="node-orb">02</span><span class="node-title">FROSTLINE PASS</span><span class="node-stars"></span></button>
-      <div class="sector-node locked n3" data-map-sector="3"><span class="node-orb">03</span><span class="node-title">CLASSIFIED</span><span class="node-stars"></span></div>
-      <div class="map-legend"><span><strong>ROUTE:</strong> Dustwall → Frostline</span><span class="map-lock-note">More sectors will open as the campaign expands.</span></div>
+      <div class="current-marker current-1"><span>YOU ARE HERE</span></div>
+      <button class="sector-node n1" data-map-sector="1"><span class="node-orb">01</span><span class="node-title">DUSTWALL<br>DEFENSE</span><span class="node-stars"></span></button>
+      <button class="sector-node frost n2" data-map-sector="2"><span class="node-orb">02</span><span class="node-title">FROSTLINE<br>PASS</span><span class="node-stars"></span></button>
+      <div class="sector-node locked n3" data-map-sector="3"><span class="node-orb">03</span><span class="node-title">CLASSIFIED</span><span class="node-future">COMING SOON</span><span class="node-stars"></span></div>
+      <div class="map-legend"><span><strong>ROUTE:</strong> Dustwall → Frostline</span><span class="map-current-copy">CURRENT: Dustwall Defense</span></div>
     </section>
   </div>
 
   <div id="campaignOverlay" aria-live="polite"><section class="campaign-card"><div class="campaign-head"><small>FUN TD OPERATIONS</small><h2>CAMPAIGN COMMAND</h2><p>Select a sector, improve your medal, and hold the line.</p></div><div id="sectorGrid" class="sector-grid"></div><div class="campaign-footer"><button id="campaignClose">RETURN</button></div></section></div>
-  <div id="intro" class="modal"><section><div class="eyebrow">SECTOR 01 · DUSTWALL DEFENSE</div><h1>FUN <em>TD</em></h1><p>Build. Blast the swarm. Upgrade. Repeat.</p><div class="intro-version">v0.6.0-alpha</div><button id="play">DEFEND THE BASE</button><button id="campaignMapButton">CAMPAIGN MAP</button><button id="campaignButton">CAMPAIGN COMMAND</button></section></div>
+  <div id="intro" class="modal"><section><div class="eyebrow">SECTOR 01 · DUSTWALL DEFENSE</div><h1>FUN <em>TD</em></h1><p>Build. Blast the swarm. Upgrade. Repeat.</p><div class="intro-version">v0.6.1-alpha</div><button id="play">DEFEND THE BASE</button><button id="campaignMapButton">CAMPAIGN MAP</button><button id="campaignButton">CAMPAIGN COMMAND</button></section></div>
 </main>
 <script defer src="src/loader.js"></script>
 <script defer src="src/milestones.js"></script>

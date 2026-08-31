@@ -2,10 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#18243a">
+<meta name="fun-td-build" content="0.9.0">
 <title>FUN TD — Swarm Defense</title>
 <link rel="stylesheet" href="styles/main.css?v=0.9.0"><link rel="stylesheet" href="styles/milestones.css?v=0.9.0"><link rel="stylesheet" href="styles/gameflow.css?v=0.9.0"><link rel="stylesheet" href="styles/campaign.css?v=0.9.0"><link rel="stylesheet" href="styles/campaign-map.css?v=0.9.0"><link rel="stylesheet" href="styles/campaign-map-polish.css?v=0.9.0"><link rel="stylesheet" href="styles/sector3-map.css?v=0.9.0"><link rel="stylesheet" href="styles/sector4-map.css?v=0.9.0"><link rel="stylesheet" href="styles/warroom.css?v=0.9.0"><link rel="stylesheet" href="styles/specialops.css?v=0.9.0">
+<script>
+(()=>{const BUILD='0.9.0',k='funTD_lastBuild';try{const last=localStorage.getItem(k);localStorage.setItem(k,BUILD);if(last&&last!==BUILD&&!location.search.includes('build=')){const u=new URL(location.href);u.searchParams.set('build',BUILD);location.replace(u.toString())}}catch(e){}})();
+</script>
 </head>
 <body><main id="app">
 <canvas id="game" aria-label="FUN TD battlefield"></canvas><header id="hud"><div class="progress-shell"><div id="progressFill"></div><div class="progress-label"><span>ENEMIES DEFEATED</span><b id="progressText">0 / 0</b></div></div><div class="gold-pill"><span class="coin">●</span><b id="gold">600</b></div></header><div id="subhud"><span>WAVE <b id="wave">1</b>/20</span><span>BASE <b id="hp">100</b></span></div><div id="waveIntel" aria-live="polite"></div><div id="milestoneAlert" class="milestone-alert" aria-live="assertive"></div><div id="versionBadge" aria-label="Game version">v0.9.0-alpha</div><div id="toast"></div><div id="towerMenu" class="panel hidden"></div><button id="startWave" class="start-wave">START WAVE 1</button><div id="cornerControls"><button id="speed">1×</button><button id="pause">Ⅱ</button><button id="sound">♪</button></div><div id="pauseFlowBadge">PAUSED</div>

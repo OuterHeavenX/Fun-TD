@@ -1,23 +1,5 @@
 (()=>{
-const WAVE_INTEL={
-1:['GRUNTS'],2:['GRUNTS'],3:['GRUNTS'],4:['GRUNTS'],5:['GRUNTS · SWARM SURGE'],
-6:['GRUNTS','SCOUTS'],7:['GRUNTS','SCOUTS'],8:['GRUNTS','ARMORED'],9:['GRUNTS','SCOUTS'],10:['GRUNTS','ARMORED · ELITE PUSH'],
-11:['GRUNTS','SCOUTS'],12:['GRUNTS','ARMORED'],13:['GRUNTS','HEAVIES'],14:['GRUNTS','SCOUTS','ARMORED'],15:['GRUNTS','HEAVIES · HEAVY ASSAULT'],
-16:['GRUNTS','SCOUTS'],17:['GRUNTS','ARMORED'],18:['GRUNTS','HEAVIES'],19:['GRUNTS','SCOUTS','ARMORED'],20:['SAND TITAN','GRUNTS','HEAVIES']
-};
-const MILESTONES={
-5:{title:'SWARM SURGE',sub:'Mass infantry wave',tone:'green'},
-10:{title:'ARMORED PUSH',sub:'Heavy plating detected',tone:'amber'},
-15:{title:'HEAVY ASSAULT',sub:'Siege units inbound',tone:'red'},
-20:{title:'BOSS WAVE',sub:'SAND TITAN APPROACHING',tone:'boss'}
-};
-const waveEl=document.getElementById('wave'),start=document.getElementById('startWave'),intel=document.getElementById('waveIntel'),alert=document.getElementById('milestoneAlert');
-if(!waveEl||!start||!intel||!alert)return;
-const iconFor=t=>t.includes('TITAN')?'☠':t.includes('HEAV')?'◆':t.includes('ARMOR')?'◈':t.includes('SCOUT')?'⚡':'●';
-function wave(){return Math.max(1,Math.min(20,parseInt(waveEl.textContent,10)||1))}
-function renderIntel(){const w=wave(),items=WAVE_INTEL[w]||['GRUNTS'];intel.innerHTML=`<span class="intel-label">WAVE ${w} INTEL</span><span class="intel-units">${items.map(t=>`<b>${iconFor(t)} ${t}</b>`).join('<i>+</i>')}</span>`;intel.classList.toggle('milestone',!!MILESTONES[w]);}
-function flashMilestone(w){const m=MILESTONES[w];if(!m)return;alert.className=`milestone-alert show ${m.tone}`;alert.innerHTML=`<small>⚠ THREAT ESCALATION ⚠</small><strong>${m.title}</strong><span>${m.sub}</span>`;document.documentElement.classList.add('threat-flash');clearTimeout(flashMilestone.timer);flashMilestone.timer=setTimeout(()=>{alert.classList.remove('show');document.documentElement.classList.remove('threat-flash')},1450)}
-start.addEventListener('click',()=>{const w=wave();if(MILESTONES[w])flashMilestone(w)});
-new MutationObserver(renderIntel).observe(waveEl,{childList:true,characterData:true,subtree:true});
-renderIntel();
-})();
+const sector=window.FUN_TD_SECTOR||1;
+const WAVE_INTEL={1:['GRUNTS'],2:['GRUNTS'],3:['GRUNTS'],4:['GRUNTS'],5:['GRUNTS · SWARM SURGE'],6:['GRUNTS','SCOUTS'],7:['GRUNTS','SCOUTS'],8:['GRUNTS','ARMORED'],9:['GRUNTS','SCOUTS'],10:['GRUNTS','ARMORED · ELITE PUSH'],11:['GRUNTS','SCOUTS'],12:['GRUNTS','ARMORED'],13:['GRUNTS','HEAVIES'],14:['GRUNTS','SCOUTS','ARMORED'],15:['GRUNTS','HEAVIES · HEAVY ASSAULT'],16:['GRUNTS','SCOUTS'],17:['GRUNTS','ARMORED'],18:['GRUNTS','HEAVIES'],19:['GRUNTS','SCOUTS','ARMORED'],20:[sector===2?'ICE TITAN':'SAND TITAN','GRUNTS','HEAVIES']};
+const MILESTONES=sector===2?{5:{title:'WHITEOUT SURGE',sub:'Swarm pushing through the storm',tone:'green'},10:{title:'FROZEN ARMOR',sub:'Heavy plating on the ice road',tone:'amber'},15:{title:'GLACIER ASSAULT',sub:'Siege units entering Frostline',tone:'red'},20:{title:'BOSS WAVE',sub:'ICE TITAN APPROACHING',tone:'boss'}}:{5:{title:'SWARM SURGE',sub:'Mass infantry wave',tone:'green'},10:{title:'ARMORED PUSH',sub:'Heavy plating detected',tone:'amber'},15:{title:'HEAVY ASSAULT',sub:'Siege units inbound',tone:'red'},20:{title:'BOSS WAVE',sub:'SAND TITAN APPROACHING',tone:'boss'}};
+const waveEl=document.getElementById('wave'),start=document.getElementById('startWave'),intel=document.getElementById('waveIntel'),alert=document.getElementById('milestoneAlert');if(!waveEl||!start||!intel||!alert)return;const iconFor=t=>t.includes('TITAN')?'☠':t.includes('HEAV')?'◆':t.includes('ARMOR')?'◈':t.includes('SCOUT')?'⚡':'●';function wave(){return Math.max(1,Math.min(20,parseInt(waveEl.textContent,10)||1))}function renderIntel(){const w=wave(),items=WAVE_INTEL[w]||['GRUNTS'];intel.innerHTML=`<span class="intel-label">${sector===2?'FROSTLINE':'DUSTWALL'} · WAVE ${w}</span><span class="intel-units">${items.map(t=>`<b>${iconFor(t)} ${t}</b>`).join('<i>+</i>')}</span>`;intel.classList.toggle('milestone',!!MILESTONES[w])}function flashMilestone(w){const m=MILESTONES[w];if(!m)return;alert.className=`milestone-alert show ${m.tone}`;alert.innerHTML=`<small>⚠ THREAT ESCALATION ⚠</small><strong>${m.title}</strong><span>${m.sub}</span>`;document.documentElement.classList.add('threat-flash');clearTimeout(flashMilestone.timer);flashMilestone.timer=setTimeout(()=>{alert.classList.remove('show');document.documentElement.classList.remove('threat-flash')},1450)}start.addEventListener('click',()=>{const w=wave();if(MILESTONES[w])flashMilestone(w)});new MutationObserver(renderIntel).observe(waveEl,{childList:true,characterData:true,subtree:true});renderIntel();})();

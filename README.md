@@ -80,6 +80,8 @@ Manual QA checklist:
 - `npm run balance`: wave 1 measured 1,047 armor-adjusted effective HP; wave 20 measured 41,740. Wave 19 is the highest burst-pressure wave, while wave 20 is the largest total-health encounter.
 - Early-game rebalance browser check: wave 4 recorded 14 kills after seven seconds and wave 5 recorded four kills during its slower mixed opening; both retained 100% core health with no captured warnings/errors. Bolt worst-case runner intercept time is under 0.25 seconds.
 - Midgame accessibility rebalance: the premature Siege Beast was removed from wave 6; waves 6–10 now use smaller, slower groups. Wave 6 pressure fell from 303 to 138 effective HP/second and its release window increased from 7.8 to 12.5 seconds.
+- Combat-feel reset: enemy movement speeds were reduced by roughly one third, authored spawn timing is 55% slower, and each wave gains an additional setup second. Starting gold is 560, flawless bonuses are 35, and sell refunds are 72%. Bolt/Frost attacks now resolve instantly with short straight tracers; Mortars commit to fixed ground impact points and never home.
+- Procedural enemies now use animated toy-soldier silhouettes with legs, torsos, heads, helmets, weapons, armor plates, and type-specific energy details instead of circle-only markers.
 - Static campaign count: 1,246 authored spawns before Splitter children, exceeding the 150-kill target.
 - Not executed: physical iPhone/Android/iPad testing, ten full manual retries, full 20-wave human playthrough, and hardware profiling at 250 simultaneous enemies.
 

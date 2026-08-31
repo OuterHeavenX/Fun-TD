@@ -1,4 +1,4 @@
-export const ECONOMY={startGold:420,sellRate:.68,waveBase:35,flawlessBonus:25};
+export const ECONOMY={startGold:560,sellRate:.72,waveBase:35,flawlessBonus:35};
 export const LEVEL_MULTIPLIERS=[1,1.6,2.2,3.2,4.8];
 export const upgradeCost=(base,level)=>Math.round(base*LEVEL_MULTIPLIERS[level]);
 export const refundFor=(invested)=>Math.floor(invested*ECONOMY.sellRate);

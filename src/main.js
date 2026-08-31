@@ -1,1 +1,2 @@
-import{Game}from'./core/Game.js';window.funTD=new Game(document.querySelector('#game'));
+import{Game}from'./core/Game.js';
+new Game(document.querySelector('#game'));

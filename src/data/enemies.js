@@ -1,1 +1,7 @@
-export const ENEMIES={runner:{name:'Runner',hp:28,speed:25,reward:8,damage:1,size:9,color:'#ffe05e',armor:0,resist:.03},raider:{name:'Raider',hp:58,speed:22,reward:11,damage:1,size:11,color:'#f36b54',armor:.03,resist:.08},bulwark:{name:'Bulwark',hp:170,speed:15,reward:22,damage:3,size:14,color:'#7e8b9c',armor:.26,resist:.25},splitter:{name:'Splitter',hp:88,speed:20,reward:17,damage:2,size:12,color:'#8ee36b',armor:.03,resist:.14},disruptor:{name:'Disruptor',hp:120,speed:18,reward:26,damage:3,size:13,color:'#d27cff',armor:.08,resist:.3},beast:{name:'Siege Beast',hp:560,speed:11,reward:90,damage:8,size:21,color:'#b35238',armor:.18,resist:.42},boss:{name:'Dust Colossus',hp:5200,speed:7,reward:900,damage:24,size:38,color:'#653e2f',armor:.22,resist:.55}};
+export const ENEMIES={
+  grunt:{name:'Green Grunt',hp:34,speed:54,reward:5,damage:1,size:10,color:'#36d058'},
+  scout:{name:'Scout',hp:27,speed:76,reward:7,damage:1,size:8,color:'#79ee55'},
+  armored:{name:'Armored',hp:105,speed:40,reward:12,damage:2,size:12,color:'#23934a'},
+  heavy:{name:'Heavy',hp:280,speed:28,reward:20,damage:5,size:17,color:'#18743f'},
+  boss:{name:'Sand Titan',hp:2300,speed:20,reward:250,damage:15,size:30,color:'#0e5938'}
+};

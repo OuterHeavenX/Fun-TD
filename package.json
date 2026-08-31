@@ -1,1 +1,13 @@
-{"name":"fun-td","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","balance":"node tests/balance-report.js","serve":"npx --yes serve ."}}
+{
+  "name": "fun-td",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "balance": "node tools/balance-sim.js",
+    "serve": "npx --yes serve .",
+    "sprites": "blender -b -noaudio --python tools/blender/build_sprites.py -- --out assets/sprites",
+    "tune": "node tools/tune.js",
+    "audit": "node tools/campaign-audit.js"
+  }
+}

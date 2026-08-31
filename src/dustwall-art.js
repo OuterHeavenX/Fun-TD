@@ -1,26 +1,42 @@
-(()=>{
-if((window.FUN_TD_SECTOR||1)!==1||window.FUN_TD_ENDLESS)return;
-const PATH=[[710,145],[520,145],[520,315],[650,315],[650,500],[430,500],[430,690],[620,690],[620,930],[330,930],[330,780],[210,780],[210,630],[150,630]],BASE={x:112,y:600};
-const wait=setInterval(()=>{const g=window.funTDGame;if(!g)return;clearInterval(wait);
-const rr=(c,x,y,w,h,r)=>{r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath()};
-const rock=(c,x,y,s=1)=>{c.save();c.translate(x,y);c.fillStyle='#5b3a25';c.beginPath();c.moveTo(-14*s,7*s);c.lineTo(-8*s,-9*s);c.lineTo(8*s,-12*s);c.lineTo(15*s,2*s);c.lineTo(7*s,11*s);c.closePath();c.fill();c.fillStyle='#8a5b35';c.beginPath();c.moveTo(-7*s,-5*s);c.lineTo(6*s,-8*s);c.lineTo(10*s,0);c.lineTo(-4*s,2*s);c.closePath();c.fill();c.restore()};
-const crate=(c,x,y,s=1)=>{c.save();c.translate(x,y);c.fillStyle='#604026';c.strokeStyle='#b07a45';c.lineWidth=2;c.fillRect(-13*s,-13*s,26*s,26*s);c.strokeRect(-13*s,-13*s,26*s,26*s);c.beginPath();c.moveTo(-13*s,-13*s);c.lineTo(13*s,13*s);c.moveTo(13*s,-13*s);c.lineTo(-13*s,13*s);c.stroke();c.restore()};
-const palm=(c,x,y,s=1)=>{c.save();c.translate(x,y);c.strokeStyle='#5b3b22';c.lineWidth=8*s;c.beginPath();c.moveTo(0,30*s);c.quadraticCurveTo(-4*s,0,5*s,-34*s);c.stroke();c.strokeStyle='#46692f';c.lineWidth=6*s;for(let i=0;i<7;i++){const a=i*Math.PI*2/7;c.beginPath();c.moveTo(5*s,-34*s);c.quadraticCurveTo(Math.cos(a)*22*s,-34*s+Math.sin(a)*10*s,Math.cos(a)*38*s,-34*s+Math.sin(a)*25*s);c.stroke()}c.restore()};
-const panel=(c,x,y,w,h)=>{c.save();c.translate(x,y);c.shadowColor='#0008';c.shadowBlur=10;c.shadowOffsetY=7;c.fillStyle='#2b3031';c.strokeStyle='#5a5f5b';c.lineWidth=4;rr(c,-w/2,-h/2,w,h,8);c.fill();c.stroke();c.shadowColor='transparent';c.strokeStyle='#a56b22';c.lineWidth=2;c.setLineDash([8,7]);rr(c,-w/2+8,-h/2+8,w-16,h-16,5);c.stroke();c.setLineDash([]);c.restore()};
-g.drawWorld=function(c){
- const sky=c.createLinearGradient(0,0,0,1120);sky.addColorStop(0,'#d99650');sky.addColorStop(.45,'#c77f40');sky.addColorStop(1,'#9f5c31');c.fillStyle=sky;c.fillRect(0,0,720,1120);
- c.save();c.globalAlpha=.22;for(let i=0;i<120;i++){const x=(i*83+31)%720,y=(i*191+73)%1120,r=1+(i%4);c.fillStyle=i%3?'#f0bd75':'#7e492d';c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill()}c.restore();
- c.fillStyle='#8a532f';c.globalAlpha=.35;c.beginPath();c.moveTo(0,0);c.lineTo(230,0);c.lineTo(168,170);c.lineTo(0,240);c.closePath();c.fill();c.beginPath();c.moveTo(720,790);c.lineTo(720,1120);c.lineTo(570,1120);c.lineTo(630,920);c.closePath();c.fill();c.globalAlpha=1;
- palm(c,55,1010,.8);palm(c,676,980,.85);palm(c,72,270,.72);rock(c,65,430,1.1);rock(c,290,335,.7);rock(c,350,720,.65);rock(c,665,610,.8);rock(c,95,920,.8);crate(c,80,455,.8);crate(c,305,470,.9);crate(c,675,720,.8);crate(c,190,360,.7);panel(c,92,105,105,55);panel(c,330,108,92,44);panel(c,680,405,72,110);
- c.save();c.lineJoin='round';c.lineCap='round';c.shadowColor='#0009';c.shadowBlur=15;c.shadowOffsetY=11;c.strokeStyle='#252a29';c.lineWidth=82;c.beginPath();PATH.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.stroke();c.shadowColor='transparent';c.strokeStyle='#555a54';c.lineWidth=70;c.stroke();c.strokeStyle='#8b8170';c.lineWidth=58;c.stroke();c.strokeStyle='#d4b888';c.lineWidth=44;c.stroke();c.strokeStyle='#5a5147';c.lineWidth=3;c.setLineDash([15,13]);c.stroke();c.setLineDash([]);
- c.strokeStyle='#282c2b';c.lineWidth=9;c.stroke();c.strokeStyle='#70756e';c.lineWidth=4;c.stroke();c.restore();
- for(const [x,y] of [[520,145],[520,315],[650,500],[430,690],[620,930],[330,930],[210,780],[210,630]]){c.fillStyle='#f0a62d';c.beginPath();c.arc(x,y,4,0,Math.PI*2);c.fill()}
- this.drawBase(c);
-};
-g.drawBase=function(c){const hp=this.baseHp;c.save();c.translate(BASE.x,BASE.y);c.shadowColor='#000a';c.shadowBlur=22;c.shadowOffsetY=14;c.fillStyle='#222827';c.beginPath();c.arc(0,0,96,0,Math.PI*2);c.fill();c.shadowColor='transparent';c.strokeStyle='#647078';c.lineWidth=9;c.stroke();c.fillStyle='#35434a';c.beginPath();c.arc(0,0,79,0,Math.PI*2);c.fill();c.strokeStyle='#1f8ed0';c.lineWidth=6;c.stroke();for(let i=0;i<8;i++){c.save();c.rotate(i*Math.PI/4);c.fillStyle='#6e7471';c.fillRect(62,-8,28,16);c.restore()}c.fillStyle='#11263a';rr(c,-53,-47,106,94,15);c.fill();c.strokeStyle='#93dcff';c.lineWidth=5;c.stroke();c.fillStyle=hp<35?'#ff5d55':'#1e80bd';rr(c,-36,-31,72,62,10);c.fill();c.fillStyle='#dff6ff';rr(c,-25,-20,50,40,8);c.fill();c.fillStyle='#0c2537';rr(c,-13,-10,26,20,4);c.fill();c.fillStyle='#52cfff';rr(c,-7,-5,14,10,3);c.fill();c.strokeStyle='#ffb43c';c.lineWidth=3;c.beginPath();c.moveTo(-64,44);c.lineTo(64,44);c.stroke();c.restore()};
-g.drawPad=function(c,p){const prices={gun:100,cannon:200,freeze:150},price=prices[p.type]||100,ok=this.gold>=price;c.save();c.translate(p.x,p.y);c.shadowColor='#0009';c.shadowBlur=12;c.shadowOffsetY=7;c.fillStyle='#2b3030';c.strokeStyle='#666f70';c.lineWidth=5;c.beginPath();for(let i=0;i<8;i++){const a=Math.PI/8+i*Math.PI/4,r=39;i?c.lineTo(Math.cos(a)*r,Math.sin(a)*r):c.moveTo(Math.cos(a)*r,Math.sin(a)*r)}c.closePath();c.fill();c.stroke();c.shadowColor='transparent';c.fillStyle='#102939';c.beginPath();c.arc(0,0,27,0,Math.PI*2);c.fill();c.strokeStyle=ok?'#59d8ff':'#59636a';c.lineWidth=4;c.stroke();c.strokeStyle=ok?'#9ef2ff':'#59636a';c.lineWidth=2;c.beginPath();c.arc(0,0,17,0,Math.PI*2);c.stroke();c.fillStyle=ok?'#173b50':'#333d42';c.strokeStyle='#0b1921';c.lineWidth=3;rr(c,-39,-70,78,34,7);c.fill();c.stroke();c.fillStyle='#f8b827';c.beginPath();c.arc(-22,-53,8,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.font='900 18px Arial';c.textAlign='center';c.strokeStyle='#071017';c.lineWidth=4;c.strokeText(price,11,-47);c.fillText(price,11,-47);c.restore()};
-g.drawTower=function(c,t){const cfg={gun:['#3a4343','#6cd4ff'],cannon:['#4b342d','#ff8b3d'],freeze:['#294a57','#8ef4ff']}[t.type]||['#3d3d3d','#fff'],r=31+t.level*2;c.save();c.translate(t.x,t.y);c.shadowColor='#000a';c.shadowBlur=13;c.shadowOffsetY=8;c.fillStyle='#262c2d';c.beginPath();c.arc(0,0,r+10,0,Math.PI*2);c.fill();c.shadowColor='transparent';c.strokeStyle='#677278';c.lineWidth=5;c.stroke();c.fillStyle=cfg[0];c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fill();c.strokeStyle=cfg[1];c.lineWidth=4;c.stroke();for(let i=0;i<4+t.level;i++){const a=i*Math.PI*2/(4+t.level);c.fillStyle='#8c979a';c.fillRect(Math.cos(a)*(r-4)-3,Math.sin(a)*(r-4)-3,6,6)}c.rotate(t.angle);c.translate(-t.recoil*4,0);if(t.type==='gun'){c.fillStyle='#1d272b';c.fillRect(-8,-12,30,24);c.fillStyle='#78878d';c.fillRect(10,-7,31+t.level*4,6);c.fillRect(10,2,31+t.level*4,6);c.fillStyle=cfg[1];c.fillRect(15,-3,12,6)}else if(t.type==='cannon'){c.fillStyle='#23272a';c.fillRect(-8,-16,31,32);c.fillStyle='#9b5c3b';c.fillRect(5,-11,26,22);c.fillStyle='#2b2b2b';c.fillRect(23,-8,22+t.level*4,16)}else{c.fillStyle='#dffcff';c.beginPath();c.moveTo(4,-22);c.lineTo(17,0);c.lineTo(4,22);c.lineTo(-8,0);c.closePath();c.fill();c.strokeStyle=cfg[1];c.lineWidth=4;c.stroke();c.fillStyle='#31677e';c.fillRect(13,-5,22+t.level*3,10)}c.restore();c.fillStyle='#fff';c.font='900 11px Arial';c.textAlign='center';c.strokeStyle='#000';c.lineWidth=3;c.strokeText('L'+t.level,t.x,t.y+50);c.fillText('L'+t.level,t.x,t.y+50)};
-g.drawEnemy=function(c,e){const ox=Math.cos(e.angle+Math.PI/2)*e.lane,oy=Math.sin(e.angle+Math.PI/2)*e.lane,x=e.x+ox,y=e.y+oy,s=e.size;c.save();c.translate(x,y);c.rotate(e.angle);c.globalAlpha=.28;c.fillStyle='#000';c.beginPath();c.ellipse(-2,7,s*1.05,s*.62,0,0,Math.PI*2);c.fill();c.globalAlpha=1;c.fillStyle='#172d22';c.fillRect(-s*.6,s*.25,s*.42,s*.95);c.fillRect(s*.18,s*.25,s*.42,s*.95);c.fillStyle=e.color;c.strokeStyle='#0f3c23';c.lineWidth=2;c.beginPath();c.arc(0,0,s,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#284c2f';c.beginPath();c.arc(0,-s*.35,s*.86,Math.PI,0);c.fill();c.fillStyle='#b9ff9c';c.fillRect(s*.15,-2,3,3);if(e.type==='heavy'||e.type==='boss'){c.strokeStyle='#91a596';c.lineWidth=3;c.strokeRect(-s*.75,-s*.65,s*1.5,s*1.3)}c.restore();if(e.hp<e.maxHp){c.fillStyle='#101816';c.fillRect(x-s,y-s-11,s*2,4);c.fillStyle='#55ef69';c.fillRect(x-s,y-s-11,s*2*Math.max(0,e.hp/e.maxHp),4)}};
-g.drawProjectile=function(c,p){if(p.type==='gun'){c.strokeStyle='#d8f7ff';c.lineWidth=4;c.beginPath();c.moveTo(p.px,p.py);c.lineTo(p.x,p.y);c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(p.x,p.y,3,0,Math.PI*2);c.fill()}else if(p.type==='cannon'){c.shadowColor='#ff9f3f';c.shadowBlur=12;c.fillStyle='#303030';c.strokeStyle='#ff9f3f';c.lineWidth=3;c.beginPath();c.arc(p.x,p.y,8,0,Math.PI*2);c.fill();c.stroke();c.shadowColor='transparent'}else{c.shadowColor='#9bf6ff';c.shadowBlur=14;c.fillStyle='#d7ffff';c.beginPath();c.arc(p.x,p.y,7,0,Math.PI*2);c.fill();c.shadowColor='transparent'}};
-},90);
+/* Dustwall art pack — Sector 01.
+ *
+ * Sector 01 is the only map with hand-placed scenery, so it keeps its own file;
+ * all the drawing itself lives in src/art/sprite-pack.js and is shared with the
+ * rest of the campaign.
+ *
+ * If the manifest or any image fails to load the pack never installs and the
+ * runtime keeps its own procedural drawing, so the game still plays.
+ */
+(() => {
+if ((window.FUN_TD_SECTOR || 1) !== 1 || window.FUN_TD_ENDLESS) return;
+
+const ART = window.FUN_TD_ART;
+if (!ART) return;
+
+const PATH = [[710, 145], [520, 145], [520, 315], [650, 315], [650, 500], [430, 500],
+              [430, 690], [620, 690], [620, 930], [330, 930], [330, 780], [210, 780],
+              [210, 630], [150, 630]];
+const BASE = { x: 112, y: 600 };
+
+// Placed by hand: the outpost should look occupied rather than randomly littered.
+const PROPS = [
+  ['prop_rock', 62, 432, 1.15], ['prop_rock', 288, 336, 0.75], ['prop_rock', 352, 722, 0.7],
+  ['prop_rock', 668, 612, 0.85], ['prop_rock', 96, 922, 0.8], ['prop_rock', 176, 196, 0.9],
+  ['prop_rock', 604, 1062, 0.95], ['prop_rock', 300, 1024, 0.7],
+  ['prop_crate', 82, 458, 0.85], ['prop_crate', 308, 470, 0.95], ['prop_crate', 676, 722, 0.85],
+  ['prop_crate', 190, 358, 0.75], ['prop_crate', 118, 336, 0.7],
+  ['prop_barrel', 60, 496, 0.8], ['prop_barrel', 344, 452, 0.75], ['prop_barrel', 700, 690, 0.8],
+  ['prop_barrel', 262, 1058, 0.75],
+  ['prop_sandbags', 268, 616, 0.9], ['prop_sandbags', 548, 962, 0.9], ['prop_sandbags', 168, 706, 0.8]
+];
+
+ART.whenReady(game => {
+  ART.installClassic(game, {
+    path: PATH,
+    theme: ART.THEMES[1],
+    props: PROPS,
+    towers: (window.FUN_TD_MODEL && window.FUN_TD_MODEL.TOWERS) || {},
+    base: BASE
+  });
+});
 })();

@@ -1,0 +1,281 @@
+{
+  "orthoScale": 3.1,
+  "parts": {
+    "arc_base_l1": {
+      "file": "arc_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "arc_base_l2": {
+      "file": "arc_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "arc_base_l3": {
+      "file": "arc_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "arc_base_l4": {
+      "file": "arc_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "arc_turret_l1": {
+      "file": "arc_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "arc_turret_l2": {
+      "file": "arc_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "arc_turret_l3": {
+      "file": "arc_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "arc_turret_l4": {
+      "file": "arc_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_base_l1": {
+      "file": "cannon_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_base_l2": {
+      "file": "cannon_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_base_l3": {
+      "file": "cannon_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_base_l4": {
+      "file": "cannon_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_turret_l1": {
+      "file": "cannon_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_turret_l2": {
+      "file": "cannon_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_turret_l3": {
+      "file": "cannon_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "cannon_turret_l4": {
+      "file": "cannon_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "core": {
+      "file": "core.png",
+      "note": "static",
+      "pixelsPerUnit": 123.871,
+      "size": 384
+    },
+    "enemy_armored": {
+      "file": "enemy_armored.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 101.053,
+      "size": 192
+    },
+    "enemy_boss": {
+      "file": "enemy_boss.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 110.345,
+      "size": 320
+    },
+    "enemy_grunt": {
+      "file": "enemy_grunt.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 94.118,
+      "size": 160
+    },
+    "enemy_heavy": {
+      "file": "enemy_heavy.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 112.0,
+      "size": 224
+    },
+    "enemy_mite": {
+      "file": "enemy_mite.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 86.154,
+      "size": 112
+    },
+    "enemy_scout": {
+      "file": "enemy_scout.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 94.118,
+      "size": 160
+    },
+    "enemy_splitter": {
+      "file": "enemy_splitter.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 92.632,
+      "size": 176
+    },
+    "enemy_surger": {
+      "file": "enemy_surger.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 92.632,
+      "size": 176
+    },
+    "enemy_warden": {
+      "file": "enemy_warden.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 96.0,
+      "size": 192
+    },
+    "frost_base_l1": {
+      "file": "frost_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "frost_base_l2": {
+      "file": "frost_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "frost_base_l3": {
+      "file": "frost_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "frost_base_l4": {
+      "file": "frost_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "frost_turret_l1": {
+      "file": "frost_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "frost_turret_l2": {
+      "file": "frost_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "frost_turret_l3": {
+      "file": "frost_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "frost_turret_l4": {
+      "file": "frost_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_base_l1": {
+      "file": "gun_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_base_l2": {
+      "file": "gun_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_base_l3": {
+      "file": "gun_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_base_l4": {
+      "file": "gun_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_turret_l1": {
+      "file": "gun_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_turret_l2": {
+      "file": "gun_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_turret_l3": {
+      "file": "gun_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "gun_turret_l4": {
+      "file": "gun_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "prop_barrel": {
+      "file": "prop_barrel.png",
+      "note": "static",
+      "pixelsPerUnit": 98.462,
+      "size": 128
+    },
+    "prop_crate": {
+      "file": "prop_crate.png",
+      "note": "static",
+      "pixelsPerUnit": 91.429,
+      "size": 128
+    },
+    "prop_rock": {
+      "file": "prop_rock.png",
+      "note": "static",
+      "pixelsPerUnit": 85.333,
+      "size": 128
+    },
+    "prop_sandbags": {
+      "file": "prop_sandbags.png",
+      "note": "static",
+      "pixelsPerUnit": 84.211,
+      "size": 160
+    }
+  }
+}

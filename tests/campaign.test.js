@@ -72,7 +72,7 @@ test('the art pack degrades instead of throwing when sprites are unavailable', (
 test('each sector art adapter matches that sector\'s draw signature', () => {
   const adapter = read('src/sector-art.js');
   for (const [sector, file] of Object.entries(SECTORS)) {
-    if (sector === '1' || sector === '5') continue;
+    if (sector === '1') continue;              // has its own art file
     const src = read(file);
     const classic = /drawTower\(c\s*,\s*t\)/.test(src);
     const expected = classic ? 'installClassic' : 'installCompact';
@@ -80,5 +80,38 @@ test('each sector art adapter matches that sector\'s draw signature', () => {
     assert.ok(branch, `no adapter entry for sector ${sector}`);
     assert.ok(branch[0].includes(expected),
       `sector ${sector} draws ${classic ? 'classic' : 'compact'} but is wired to the other installer`);
+  }
+});
+
+test('every sector exposes the draw methods its installer overrides', () => {
+  // installClassic and installCompact assign these by name; a sector that stops
+  // defining one silently loses that part of its art instead of failing.
+  for (const [sector, file] of Object.entries(SECTORS)) {
+    if (sector === '1') continue;
+    const src = read(file);
+    for (const method of ['drawTower', 'drawEnemy'])
+      assert.ok(new RegExp(`${method}\\(`).test(src), `sector ${sector} has no ${method}`);
+  }
+});
+
+test('pads are restyled in every sector that can reach them', () => {
+  // Sectors 02, 03 and 05 define drawPad outright; 04 and 06 draw pads inline
+  // and defer to the pack through a hook. Either way the pack must be able to
+  // take over, or that sector keeps mismatched pad art.
+  for (const sector of [2, 3, 4, 5, 6]) {
+    const src = read(SECTORS[sector]);
+    const defines = /drawPad\s*\(/.test(src);
+    const hooks = /if\(this\.drawPad\)\{this\.drawPad\(p\);continue\}/.test(src);
+    assert.ok(defines || hooks, `sector ${sector} gives the art pack no way to draw pads`);
+  }
+});
+
+test('the pad hook stays inert when the art pack has not installed', () => {
+  // The hook must be a plain presence check, so a failed sprite load leaves the
+  // sector drawing its own pads rather than drawing none at all.
+  for (const sector of [4, 6]) {
+    const src = read(SECTORS[sector]);
+    assert.ok(src.includes('if(this.drawPad){this.drawPad(p);continue}'),
+      `sector ${sector} pad hook is not the expected guarded form`);
   }
 });

@@ -53,12 +53,20 @@ so the runtime places any sprite correctly without special-casing it.
 `src/art/sprite-pack.js` loads the set once and is shared by the whole campaign. It
 carries a terrain palette per sector — dust, frost, ash, tide, night, void — and two
 installers, because the sector runtimes were written at different times and disagree on
-their draw signatures (`drawTower(ctx, tower)` in sectors 01–03, `drawTower(tower)` in
-04 and 06). Sector 01 keeps `src/dustwall-art.js` for its hand-placed scenery;
-`src/sector-art.js` drives the rest off the route the loader exposes, so adding art to a
-sector needs no per-sector art code. Nothing is required: if the manifest or any image
-fails to load, no installer runs and every sector keeps its own procedural drawing.
-Static terrain is painted once into an offscreen canvas rather than every frame.
+their draw signatures (`drawTower(ctx, tower)` in sectors 01–03, `drawTower(tower)` with
+the context on the instance in 04, 05 and 06). Sector 01 keeps `src/dustwall-art.js` for
+its hand-placed scenery; `src/sector-art.js` drives the rest off the route the loader
+exposes, so adding art to a sector needs no per-sector art code.
+
+Every sector now takes the sprite towers, enemies, core and build pads. Sectors 01–05
+also take the themed terrain and route; Sector 06 keeps its own background, which it
+paints inline with no method to replace. Sectors 04 and 06 draw their pads inside a
+loop rather than a method, so they defer to the pack through a one-line presence check
+that is inert when the pack has not installed.
+
+Nothing is required: if the manifest or any image fails to load, no installer runs and
+every sector keeps its own procedural drawing. Static terrain is painted once into an
+offscreen canvas rather than every frame.
 
 ## Balance tooling
 
@@ -105,7 +113,7 @@ to play; Node is needed only for the tests and Blender only to regenerate art.
 
 ## Tests
 
-`npm test` — 32 deterministic tests covering pad placement against the route, the
+`npm test` — 41 deterministic tests covering pad placement against the route, the
 difficulty ramp, wave readability, upgrade pricing, refunds, armour and pierce, tower
 role separation, targeting modes, path interpolation, save migration, 250-enemy spatial
 indexing and duplicate-loop prevention, plus scripted-player runs asserting that a
@@ -135,9 +143,12 @@ static server.
 - **Load**: 260 enemies queued to arrive almost at once against 12 maxed towers holds a
   16.7ms median and 16.8ms p95 frame time (60fps) with 220 units alive.
 - Sectors 02–06 and endless mode all boot clean, load all 46 sprites, and play a wave
-  with towers built. Sectors 02, 03 and 04 pick up the full themed treatment (terrain,
-  route, scenery, pads, towers, enemies, core); 06 gets towers, enemies and core over its
-  own background; 05 is unchanged for the reason above.
+  with towers built. Sectors 02–05 pick up the full themed treatment; 06 gets towers,
+  enemies, core and pads over its own background.
+- Splitting Sector 05's `draw()` into overridable methods was verified as a pure
+  refactor: with the sprite manifest blocked, a pinned scene of 6 towers and all 6 enemy
+  types renders to a byte-identical PNG and pixel hash before and after the change. The
+  same check covers the Sector 04 and 06 pad hooks.
 - `npm run balance`: effective health ramps 460 (wave 1) → 91,795 (wave 20); every wave
   resolves inside 62s for the scripted optimal player.
 - **Load, later sectors**: the largest authored wave rendered with no towers so the whole
@@ -174,10 +185,9 @@ Sector 01 actually had (its ramp was 1.0×, a wave-20 grunt had wave-1 health).
   spread is narrower than it should be for the later ones, which have not been retuned.
 - Only Sector 01 has been rebalanced. Sectors 02–06 keep their original numbers and are
   still balanced by `loader.js` regex patching.
-- Sector 05 draws everything inline inside `draw()` with no overridable methods, so it
-  keeps its original art. Sectors 04 and 06 get the sprite towers, enemies and core but
-  still draw their own build pads, and Sector 06 keeps its own background because it has
-  no world-drawing method to replace.
+- Sector 06 keeps its own background: it paints the world inline with no method to
+  replace, so it takes the sprite towers, enemies, core and pads but not the themed
+  terrain.
 - Audio is synthesised at runtime; there is no authored music.
 
 ## Assets and licensing

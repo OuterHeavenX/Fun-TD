@@ -1,27 +1,5 @@
 (()=>{
-const overlay=document.getElementById('campaignMapOverlay'),open=document.getElementById('campaignMapButton'),close=document.getElementById('campaignMapClose'),command=document.getElementById('campaignMapCommand');
-if(!overlay||!open)return;
-function migrateLegacy(n){const cleared=localStorage.getItem(`funTD_sector${n}Clear`)==='1';if(!cleared)return;const sk=`funTD_sector${n}Stars`,wk=`funTD_sector${n}BestWave`;if((+localStorage.getItem(sk)||0)===0)localStorage.setItem(sk,'1');if((+localStorage.getItem(wk)||0)<20)localStorage.setItem(wk,'20')}
-migrateLegacy(1);migrateLegacy(2);
-const current=(new URLSearchParams(location.search).get('sector')==='2')?2:1;
-const clear1=()=>localStorage.getItem('funTD_sector1Clear')==='1';
-const stars=n=>+localStorage.getItem(`funTD_sector${n}Stars`)||0;
-const starHtml=n=>[1,2,3].map(i=>`<span class="${i<=stars(n)?'':'off'}">★</span>`).join('');
-function render(){
-  const unlocked2=clear1();
-  const n1=overlay.querySelector('[data-map-sector="1"]'),n2=overlay.querySelector('[data-map-sector="2"]'),n3=overlay.querySelector('[data-map-sector="3"]');
-  [n1,n2].forEach(n=>n?.classList.remove('current'));
-  if(n1){n1.querySelector('.node-stars').innerHTML=starHtml(1);if(current===1)n1.classList.add('current')}
-  if(n2){n2.classList.toggle('locked',!unlocked2);n2.querySelector('.node-stars').innerHTML=unlocked2?starHtml(2):'<span class="off lock-copy">LOCKED</span>';if(current===2)n2.classList.add('current')}
-  if(n3)n3.querySelector('.node-stars').innerHTML='<span class="off lock-copy">COMING SOON</span>';
-  const route=overlay.querySelector('.route-to-frost');if(route){route.classList.toggle('route-locked',!unlocked2);route.classList.toggle('route-complete',unlocked2)}
-  const pulse=overlay.querySelector('.current-marker');if(pulse){pulse.className=`current-marker current-${current}`;pulse.innerHTML='<span>YOU ARE HERE</span>'}
-  const legend=overlay.querySelector('.map-current-copy');if(legend)legend.textContent=current===2?'CURRENT: Frostline Pass':'CURRENT: Dustwall Defense';
-}
-function show(){render();overlay.classList.add('show')}
-function hide(){overlay.classList.remove('show')}
-open.addEventListener('click',show);close?.addEventListener('click',hide);overlay.addEventListener('pointerdown',e=>{if(e.target===overlay)hide()});
-overlay.querySelector('[data-map-sector="1"]')?.addEventListener('click',()=>location.href=location.pathname);
-overlay.querySelector('[data-map-sector="2"]')?.addEventListener('click',()=>{if(clear1())location.href=location.pathname+'?sector=2'});
-command?.addEventListener('click',()=>{hide();document.getElementById('campaignButton')?.click()});
-})();
+const overlay=document.getElementById('campaignMapOverlay'),open=document.getElementById('campaignMapButton'),close=document.getElementById('campaignMapClose'),command=document.getElementById('campaignMapCommand');if(!overlay||!open)return;
+function migrateLegacy(n){const cleared=localStorage.getItem(`funTD_sector${n}Clear`)==='1';if(!cleared)return;const sk=`funTD_sector${n}Stars`,wk=`funTD_sector${n}BestWave`;if((+localStorage.getItem(sk)||0)===0)localStorage.setItem(sk,'1');if((+localStorage.getItem(wk)||0)<20)localStorage.setItem(wk,'20')}[1,2,3].forEach(migrateLegacy);
+const raw=new URLSearchParams(location.search).get('sector'),current=raw==='3'?3:raw==='2'?2:1;const clear1=()=>localStorage.getItem('funTD_sector1Clear')==='1',clear2=()=>localStorage.getItem('funTD_sector2Clear')==='1';const stars=n=>+localStorage.getItem(`funTD_sector${n}Stars`)||0;const starHtml=n=>[1,2,3].map(i=>`<span class="${i<=stars(n)?'':'off'}">★</span>`).join('');function render(){const u2=clear1(),u3=clear2(),n1=overlay.querySelector('[data-map-sector="1"]'),n2=overlay.querySelector('[data-map-sector="2"]'),n3=overlay.querySelector('[data-map-sector="3"]'),n4=overlay.querySelector('[data-map-sector="4"]');[n1,n2,n3].forEach(n=>n?.classList.remove('current'));if(n1){n1.querySelector('.node-stars').innerHTML=starHtml(1);if(current===1)n1.classList.add('current')}if(n2){n2.classList.toggle('locked',!u2);n2.querySelector('.node-stars').innerHTML=u2?starHtml(2):'<span class="off lock-copy">LOCKED</span>';if(current===2)n2.classList.add('current')}if(n3){n3.classList.toggle('locked',!u3);n3.querySelector('.node-stars').innerHTML=u3?starHtml(3):'<span class="off lock-copy">LOCKED</span>';if(current===3)n3.classList.add('current')}if(n4)n4.querySelector('.node-stars').innerHTML='<span class="off lock-copy">COMING SOON</span>';const frost=overlay.querySelector('.route-to-frost');if(frost){frost.classList.toggle('route-locked',!u2);frost.classList.toggle('route-complete',u2)}const ash=overlay.querySelector('.route-to-ash');if(ash){ash.classList.toggle('route-locked',!u3);ash.classList.toggle('route-complete',u3)}const marker=overlay.querySelector('.current-marker');if(marker){marker.className=`current-marker current-${current}`;marker.innerHTML='<span>YOU ARE HERE</span>'}const legend=overlay.querySelector('.map-current-copy');if(legend)legend.textContent=`CURRENT: ${current===3?'Ashfall Foundry':current===2?'Frostline Pass':'Dustwall Defense'}`}
+function show(){render();overlay.classList.add('show')}function hide(){overlay.classList.remove('show')}open.addEventListener('click',show);close?.addEventListener('click',hide);overlay.addEventListener('pointerdown',e=>{if(e.target===overlay)hide()});overlay.querySelector('[data-map-sector="1"]')?.addEventListener('click',()=>location.href=location.pathname);overlay.querySelector('[data-map-sector="2"]')?.addEventListener('click',()=>{if(clear1())location.href=location.pathname+'?sector=2'});overlay.querySelector('[data-map-sector="3"]')?.addEventListener('click',()=>{if(clear2())location.href=location.pathname+'?sector=3'});command?.addEventListener('click',()=>{hide();document.getElementById('campaignButton')?.click()});})();

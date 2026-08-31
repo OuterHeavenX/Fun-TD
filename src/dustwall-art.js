@@ -1,26 +1,404 @@
-(()=>{
-if((window.FUN_TD_SECTOR||1)!==1||window.FUN_TD_ENDLESS)return;
-const PATH=[[710,145],[520,145],[520,315],[650,315],[650,500],[430,500],[430,690],[620,690],[620,930],[330,930],[330,780],[210,780],[210,630],[150,630]],BASE={x:112,y:600};
-const wait=setInterval(()=>{const g=window.funTDGame;if(!g)return;clearInterval(wait);
-const rr=(c,x,y,w,h,r)=>{r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath()};
-const rock=(c,x,y,s=1)=>{c.save();c.translate(x,y);c.fillStyle='#5b3a25';c.beginPath();c.moveTo(-14*s,7*s);c.lineTo(-8*s,-9*s);c.lineTo(8*s,-12*s);c.lineTo(15*s,2*s);c.lineTo(7*s,11*s);c.closePath();c.fill();c.fillStyle='#8a5b35';c.beginPath();c.moveTo(-7*s,-5*s);c.lineTo(6*s,-8*s);c.lineTo(10*s,0);c.lineTo(-4*s,2*s);c.closePath();c.fill();c.restore()};
-const crate=(c,x,y,s=1)=>{c.save();c.translate(x,y);c.fillStyle='#604026';c.strokeStyle='#b07a45';c.lineWidth=2;c.fillRect(-13*s,-13*s,26*s,26*s);c.strokeRect(-13*s,-13*s,26*s,26*s);c.beginPath();c.moveTo(-13*s,-13*s);c.lineTo(13*s,13*s);c.moveTo(13*s,-13*s);c.lineTo(-13*s,13*s);c.stroke();c.restore()};
-const palm=(c,x,y,s=1)=>{c.save();c.translate(x,y);c.strokeStyle='#5b3b22';c.lineWidth=8*s;c.beginPath();c.moveTo(0,30*s);c.quadraticCurveTo(-4*s,0,5*s,-34*s);c.stroke();c.strokeStyle='#46692f';c.lineWidth=6*s;for(let i=0;i<7;i++){const a=i*Math.PI*2/7;c.beginPath();c.moveTo(5*s,-34*s);c.quadraticCurveTo(Math.cos(a)*22*s,-34*s+Math.sin(a)*10*s,Math.cos(a)*38*s,-34*s+Math.sin(a)*25*s);c.stroke()}c.restore()};
-const panel=(c,x,y,w,h)=>{c.save();c.translate(x,y);c.shadowColor='#0008';c.shadowBlur=10;c.shadowOffsetY=7;c.fillStyle='#2b3031';c.strokeStyle='#5a5f5b';c.lineWidth=4;rr(c,-w/2,-h/2,w,h,8);c.fill();c.stroke();c.shadowColor='transparent';c.strokeStyle='#a56b22';c.lineWidth=2;c.setLineDash([8,7]);rr(c,-w/2+8,-h/2+8,w-16,h-16,5);c.stroke();c.setLineDash([]);c.restore()};
-g.drawWorld=function(c){
- const sky=c.createLinearGradient(0,0,0,1120);sky.addColorStop(0,'#d99650');sky.addColorStop(.45,'#c77f40');sky.addColorStop(1,'#9f5c31');c.fillStyle=sky;c.fillRect(0,0,720,1120);
- c.save();c.globalAlpha=.22;for(let i=0;i<120;i++){const x=(i*83+31)%720,y=(i*191+73)%1120,r=1+(i%4);c.fillStyle=i%3?'#f0bd75':'#7e492d';c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill()}c.restore();
- c.fillStyle='#8a532f';c.globalAlpha=.35;c.beginPath();c.moveTo(0,0);c.lineTo(230,0);c.lineTo(168,170);c.lineTo(0,240);c.closePath();c.fill();c.beginPath();c.moveTo(720,790);c.lineTo(720,1120);c.lineTo(570,1120);c.lineTo(630,920);c.closePath();c.fill();c.globalAlpha=1;
- palm(c,55,1010,.8);palm(c,676,980,.85);palm(c,72,270,.72);rock(c,65,430,1.1);rock(c,290,335,.7);rock(c,350,720,.65);rock(c,665,610,.8);rock(c,95,920,.8);crate(c,80,455,.8);crate(c,305,470,.9);crate(c,675,720,.8);crate(c,190,360,.7);panel(c,92,105,105,55);panel(c,330,108,92,44);panel(c,680,405,72,110);
- c.save();c.lineJoin='round';c.lineCap='round';c.shadowColor='#0009';c.shadowBlur=15;c.shadowOffsetY=11;c.strokeStyle='#252a29';c.lineWidth=82;c.beginPath();PATH.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.stroke();c.shadowColor='transparent';c.strokeStyle='#555a54';c.lineWidth=70;c.stroke();c.strokeStyle='#8b8170';c.lineWidth=58;c.stroke();c.strokeStyle='#d4b888';c.lineWidth=44;c.stroke();c.strokeStyle='#5a5147';c.lineWidth=3;c.setLineDash([15,13]);c.stroke();c.setLineDash([]);
- c.strokeStyle='#282c2b';c.lineWidth=9;c.stroke();c.strokeStyle='#70756e';c.lineWidth=4;c.stroke();c.restore();
- for(const [x,y] of [[520,145],[520,315],[650,500],[430,690],[620,930],[330,930],[210,780],[210,630]]){c.fillStyle='#f0a62d';c.beginPath();c.arc(x,y,4,0,Math.PI*2);c.fill()}
- this.drawBase(c);
-};
-g.drawBase=function(c){const hp=this.baseHp;c.save();c.translate(BASE.x,BASE.y);c.shadowColor='#000a';c.shadowBlur=22;c.shadowOffsetY=14;c.fillStyle='#222827';c.beginPath();c.arc(0,0,96,0,Math.PI*2);c.fill();c.shadowColor='transparent';c.strokeStyle='#647078';c.lineWidth=9;c.stroke();c.fillStyle='#35434a';c.beginPath();c.arc(0,0,79,0,Math.PI*2);c.fill();c.strokeStyle='#1f8ed0';c.lineWidth=6;c.stroke();for(let i=0;i<8;i++){c.save();c.rotate(i*Math.PI/4);c.fillStyle='#6e7471';c.fillRect(62,-8,28,16);c.restore()}c.fillStyle='#11263a';rr(c,-53,-47,106,94,15);c.fill();c.strokeStyle='#93dcff';c.lineWidth=5;c.stroke();c.fillStyle=hp<35?'#ff5d55':'#1e80bd';rr(c,-36,-31,72,62,10);c.fill();c.fillStyle='#dff6ff';rr(c,-25,-20,50,40,8);c.fill();c.fillStyle='#0c2537';rr(c,-13,-10,26,20,4);c.fill();c.fillStyle='#52cfff';rr(c,-7,-5,14,10,3);c.fill();c.strokeStyle='#ffb43c';c.lineWidth=3;c.beginPath();c.moveTo(-64,44);c.lineTo(64,44);c.stroke();c.restore()};
-g.drawPad=function(c,p){const prices={gun:100,cannon:200,freeze:150},price=prices[p.type]||100,ok=this.gold>=price;c.save();c.translate(p.x,p.y);c.shadowColor='#0009';c.shadowBlur=12;c.shadowOffsetY=7;c.fillStyle='#2b3030';c.strokeStyle='#666f70';c.lineWidth=5;c.beginPath();for(let i=0;i<8;i++){const a=Math.PI/8+i*Math.PI/4,r=39;i?c.lineTo(Math.cos(a)*r,Math.sin(a)*r):c.moveTo(Math.cos(a)*r,Math.sin(a)*r)}c.closePath();c.fill();c.stroke();c.shadowColor='transparent';c.fillStyle='#102939';c.beginPath();c.arc(0,0,27,0,Math.PI*2);c.fill();c.strokeStyle=ok?'#59d8ff':'#59636a';c.lineWidth=4;c.stroke();c.strokeStyle=ok?'#9ef2ff':'#59636a';c.lineWidth=2;c.beginPath();c.arc(0,0,17,0,Math.PI*2);c.stroke();c.fillStyle=ok?'#173b50':'#333d42';c.strokeStyle='#0b1921';c.lineWidth=3;rr(c,-39,-70,78,34,7);c.fill();c.stroke();c.fillStyle='#f8b827';c.beginPath();c.arc(-22,-53,8,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.font='900 18px Arial';c.textAlign='center';c.strokeStyle='#071017';c.lineWidth=4;c.strokeText(price,11,-47);c.fillText(price,11,-47);c.restore()};
-g.drawTower=function(c,t){const cfg={gun:['#3a4343','#6cd4ff'],cannon:['#4b342d','#ff8b3d'],freeze:['#294a57','#8ef4ff']}[t.type]||['#3d3d3d','#fff'],r=31+t.level*2;c.save();c.translate(t.x,t.y);c.shadowColor='#000a';c.shadowBlur=13;c.shadowOffsetY=8;c.fillStyle='#262c2d';c.beginPath();c.arc(0,0,r+10,0,Math.PI*2);c.fill();c.shadowColor='transparent';c.strokeStyle='#677278';c.lineWidth=5;c.stroke();c.fillStyle=cfg[0];c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fill();c.strokeStyle=cfg[1];c.lineWidth=4;c.stroke();for(let i=0;i<4+t.level;i++){const a=i*Math.PI*2/(4+t.level);c.fillStyle='#8c979a';c.fillRect(Math.cos(a)*(r-4)-3,Math.sin(a)*(r-4)-3,6,6)}c.rotate(t.angle);c.translate(-t.recoil*4,0);if(t.type==='gun'){c.fillStyle='#1d272b';c.fillRect(-8,-12,30,24);c.fillStyle='#78878d';c.fillRect(10,-7,31+t.level*4,6);c.fillRect(10,2,31+t.level*4,6);c.fillStyle=cfg[1];c.fillRect(15,-3,12,6)}else if(t.type==='cannon'){c.fillStyle='#23272a';c.fillRect(-8,-16,31,32);c.fillStyle='#9b5c3b';c.fillRect(5,-11,26,22);c.fillStyle='#2b2b2b';c.fillRect(23,-8,22+t.level*4,16)}else{c.fillStyle='#dffcff';c.beginPath();c.moveTo(4,-22);c.lineTo(17,0);c.lineTo(4,22);c.lineTo(-8,0);c.closePath();c.fill();c.strokeStyle=cfg[1];c.lineWidth=4;c.stroke();c.fillStyle='#31677e';c.fillRect(13,-5,22+t.level*3,10)}c.restore();c.fillStyle='#fff';c.font='900 11px Arial';c.textAlign='center';c.strokeStyle='#000';c.lineWidth=3;c.strokeText('L'+t.level,t.x,t.y+50);c.fillText('L'+t.level,t.x,t.y+50)};
-g.drawEnemy=function(c,e){const ox=Math.cos(e.angle+Math.PI/2)*e.lane,oy=Math.sin(e.angle+Math.PI/2)*e.lane,x=e.x+ox,y=e.y+oy,s=e.size;c.save();c.translate(x,y);c.rotate(e.angle);c.globalAlpha=.28;c.fillStyle='#000';c.beginPath();c.ellipse(-2,7,s*1.05,s*.62,0,0,Math.PI*2);c.fill();c.globalAlpha=1;c.fillStyle='#172d22';c.fillRect(-s*.6,s*.25,s*.42,s*.95);c.fillRect(s*.18,s*.25,s*.42,s*.95);c.fillStyle=e.color;c.strokeStyle='#0f3c23';c.lineWidth=2;c.beginPath();c.arc(0,0,s,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#284c2f';c.beginPath();c.arc(0,-s*.35,s*.86,Math.PI,0);c.fill();c.fillStyle='#b9ff9c';c.fillRect(s*.15,-2,3,3);if(e.type==='heavy'||e.type==='boss'){c.strokeStyle='#91a596';c.lineWidth=3;c.strokeRect(-s*.75,-s*.65,s*1.5,s*1.3)}c.restore();if(e.hp<e.maxHp){c.fillStyle='#101816';c.fillRect(x-s,y-s-11,s*2,4);c.fillStyle='#55ef69';c.fillRect(x-s,y-s-11,s*2*Math.max(0,e.hp/e.maxHp),4)}};
-g.drawProjectile=function(c,p){if(p.type==='gun'){c.strokeStyle='#d8f7ff';c.lineWidth=4;c.beginPath();c.moveTo(p.px,p.py);c.lineTo(p.x,p.y);c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(p.x,p.y,3,0,Math.PI*2);c.fill()}else if(p.type==='cannon'){c.shadowColor='#ff9f3f';c.shadowBlur=12;c.fillStyle='#303030';c.strokeStyle='#ff9f3f';c.lineWidth=3;c.beginPath();c.arc(p.x,p.y,8,0,Math.PI*2);c.fill();c.stroke();c.shadowColor='transparent'}else{c.shadowColor='#9bf6ff';c.shadowBlur=14;c.fillStyle='#d7ffff';c.beginPath();c.arc(p.x,p.y,7,0,Math.PI*2);c.fill();c.shadowColor='transparent'}};
-},90);
+/* Dustwall art pack — Sector 01.
+ *
+ * Replaces the runtime's procedural fallback drawing with the Blender-rendered
+ * sprite set in assets/sprites (see tools/blender/build_sprites.py).  Towers are
+ * a static base plus a turret rotated about the image centre, which is why the
+ * two halves are rendered separately with a shared camera.
+ *
+ * Everything degrades: if the manifest or any image fails to load, the runtime
+ * keeps its own procedural drawing and the game still plays.
+ */
+(() => {
+if ((window.FUN_TD_SECTOR || 1) !== 1 || window.FUN_TD_ENDLESS) return;
+
+const SPRITE_DIR = 'assets/sprites/';
+// Blender units → battlefield pixels, chosen per family so a tower deck lands
+// at roughly the old pad footprint and the core keeps its 82px radius.
+const TOWER_SCALE = 46;
+const CORE_SCALE = 60;
+const PROP_SCALE = 34;
+
+const sprites = Object.create(null);
+let ready = false;
+
+function loadSprites() {
+  return fetch(SPRITE_DIR + 'manifest.json', { cache: 'force-cache' })
+    .then(r => { if (!r.ok) throw new Error('manifest ' + r.status); return r.json(); })
+    .then(manifest => Promise.all(Object.entries(manifest.parts).map(([name, part]) =>
+      new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          sprites[name] = { img, ppu: part.pixelsPerUnit, units: part.size / part.pixelsPerUnit };
+          resolve(true);
+        };
+        img.onerror = () => resolve(false);
+        img.src = SPRITE_DIR + part.file;
+      })
+    )))
+    .then(results => { ready = results.some(Boolean); return ready; });
+}
+
+/* Draw a sprite centred on (x, y), scaled so it spans `width` battlefield px. */
+function blit(c, name, x, y, width, rotation = 0, alpha = 1) {
+  const s = sprites[name];
+  if (!s) return false;
+  const h = width * (s.img.height / s.img.width);
+  c.save();
+  c.translate(x, y);
+  if (rotation) c.rotate(rotation);
+  if (alpha !== 1) c.globalAlpha = alpha;
+  c.drawImage(s.img, -width / 2, -h / 2, width, h);
+  c.restore();
+  return true;
+}
+
+const spriteWidth = (name, scale) => (sprites[name] ? sprites[name].units * scale : 0);
+
+/* ------------------------------------------------------------------ world */
+
+const PATH = [[710, 145], [520, 145], [520, 315], [650, 315], [650, 500], [430, 500],
+              [430, 690], [620, 690], [620, 930], [330, 930], [330, 780], [210, 780],
+              [210, 630], [150, 630]];
+const BASE = { x: 112, y: 600 };
+
+// Scenery is authored once here rather than scattered through the draw call.
+const PROPS = [
+  ['prop_rock', 62, 432, 1.15], ['prop_rock', 288, 336, 0.75], ['prop_rock', 352, 722, 0.7],
+  ['prop_rock', 668, 612, 0.85], ['prop_rock', 96, 922, 0.8], ['prop_rock', 176, 196, 0.9],
+  ['prop_rock', 604, 1062, 0.95], ['prop_rock', 300, 1024, 0.7],
+  ['prop_crate', 82, 458, 0.85], ['prop_crate', 308, 470, 0.95], ['prop_crate', 676, 722, 0.85],
+  ['prop_crate', 190, 358, 0.75], ['prop_crate', 118, 336, 0.7],
+  ['prop_barrel', 60, 496, 0.8], ['prop_barrel', 344, 452, 0.75], ['prop_barrel', 700, 690, 0.8],
+  ['prop_barrel', 262, 1058, 0.75],
+  ['prop_sandbags', 268, 616, 0.9], ['prop_sandbags', 548, 962, 0.9], ['prop_sandbags', 168, 706, 0.8]
+];
+
+function paintTerrain(c) {
+  const sky = c.createLinearGradient(0, 0, 120, 1120);
+  sky.addColorStop(0, '#e0a765');
+  sky.addColorStop(0.42, '#c98144');
+  sky.addColorStop(1, '#9d5c33');
+  c.fillStyle = sky;
+  c.fillRect(0, 0, 720, 1120);
+
+  // Dune bands: broad, low-contrast sweeps that keep the sand from reading flat.
+  c.save();
+  c.globalAlpha = 0.16;
+  for (let i = 0; i < 7; i++) {
+    const y = 60 + i * 165;
+    const grad = c.createLinearGradient(0, y - 70, 0, y + 70);
+    grad.addColorStop(0, '#00000000');
+    grad.addColorStop(0.5, i % 2 ? '#5c3419' : '#ffdaa0');
+    grad.addColorStop(1, '#00000000');
+    c.fillStyle = grad;
+    c.beginPath();
+    c.moveTo(0, y);
+    for (let x = 0; x <= 720; x += 60) c.lineTo(x, y + Math.sin((x + i * 130) / 150) * 26);
+    c.lineTo(720, y + 120); c.lineTo(0, y + 120);
+    c.closePath();
+    c.fill();
+  }
+  c.restore();
+
+  // Grain.
+  c.save();
+  for (let i = 0; i < 900; i++) {
+    const x = (i * 137.51 + 43) % 720, y = (i * 251.13 + 79) % 1120;
+    c.globalAlpha = 0.05 + (i % 5) * 0.02;
+    c.fillStyle = i % 3 ? '#ffd9a0' : '#6b3d1d';
+    c.fillRect(x, y, 1 + (i % 3), 1 + (i % 2));
+  }
+  c.restore();
+}
+
+function paintRoute(c) {
+  c.save();
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
+  const stroke = (width, style, dash) => {
+    c.strokeStyle = style;
+    c.lineWidth = width;
+    if (dash) c.setLineDash(dash); else c.setLineDash([]);
+    c.beginPath();
+    PATH.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]));
+    c.stroke();
+  };
+  c.shadowColor = '#0009';
+  c.shadowBlur = 18;
+  c.shadowOffsetY = 12;
+  stroke(84, '#241f1a');
+  c.shadowColor = 'transparent';
+  stroke(74, '#4d443a');
+  stroke(62, '#8b7f6c');
+  stroke(48, '#cdb389');
+  // Wheel ruts, then the dashed centre line.
+  c.globalAlpha = 0.30;
+  stroke(9, '#6d5b41');
+  c.globalAlpha = 1;
+  stroke(3, '#5a5147', [16, 14]);
+  c.setLineDash([]);
+  c.restore();
+
+  // Corner markers so every turn is legible at a glance.
+  for (let i = 1; i < PATH.length - 1; i++) {
+    const [x, y] = PATH[i];
+    c.fillStyle = '#f0a62d';
+    c.beginPath(); c.arc(x, y, 4.5, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#7a4a06'; c.lineWidth = 1.5; c.stroke();
+  }
+}
+
+function paintProps(c) {
+  for (const [name, x, y, scale] of PROPS) {
+    const w = spriteWidth(name, PROP_SCALE * scale);
+    if (w) blit(c, name, x, y, w);
+  }
+}
+
+function paintVignette(c) {
+  const v = c.createRadialGradient(360, 560, 260, 360, 560, 720);
+  v.addColorStop(0, '#00000000');
+  v.addColorStop(1, '#2a12007a');
+  c.fillStyle = v;
+  c.fillRect(0, 0, 720, 1120);
+}
+
+/* The terrain, route, scenery and vignette never change, so they are painted
+   once into an offscreen canvas and blitted each frame. */
+let worldCache = null;
+function buildWorldCache() {
+  const off = document.createElement('canvas');
+  off.width = 720;
+  off.height = 1120;
+  const c = off.getContext('2d');
+  paintTerrain(c);
+  paintProps(c);
+  paintRoute(c);
+  paintVignette(c);
+  worldCache = off;
+}
+
+/* ------------------------------------------------------------------ install */
+
+function install(game) {
+  buildWorldCache();
+
+  game.drawWorld = function (c) {
+    c.drawImage(worldCache, 0, 0);
+    this.drawBase(c);
+  };
+
+  game.drawBase = function (c) {
+    const hp = this.baseHp / this.maxBaseHp;
+    const w = spriteWidth('core', CORE_SCALE) || 190;
+    const hurt = hp < 0.35;
+
+    // Shield ring doubles as the health readout.
+    c.save();
+    c.translate(BASE.x, BASE.y);
+    c.strokeStyle = '#0c1a26';
+    c.lineWidth = 9;
+    c.beginPath(); c.arc(0, 0, 96, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = hurt ? '#ff6b5a' : hp < 0.6 ? '#ffc93c' : '#5fe0a0';
+    c.lineWidth = 7;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.arc(0, 0, 96, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, hp));
+    c.stroke();
+    c.restore();
+
+    blit(c, 'core', BASE.x, BASE.y, w);
+
+    if (hurt) {
+      // Damage smoke, drawn over the sprite rather than baked into it.
+      c.save();
+      c.globalAlpha = 0.45 + 0.12 * Math.sin(this.time * 3);
+      c.fillStyle = '#2f2a26';
+      for (let i = 0; i < 3; i++) {
+        const t = this.time * 0.7 + i * 2.1;
+        c.beginPath();
+        c.arc(BASE.x - 30 + i * 26 + Math.sin(t) * 8, BASE.y - 70 - (t % 3) * 22, 12 + (t % 3) * 7, 0, Math.PI * 2);
+        c.fill();
+      }
+      c.restore();
+    }
+  };
+
+  game.drawPad = function (c, p) {
+    const cheapest = Math.min(...Object.values(window.FUN_TD_MODEL.TOWERS).map(t => t.cost));
+    const afford = this.gold >= cheapest;
+    const hover = this.selectedPad === p;
+    const pulse = 0.5 + 0.5 * Math.sin(this.time * 2.6 + p.id);
+    c.save();
+    c.translate(p.x, p.y);
+
+    c.shadowColor = '#0008';
+    c.shadowBlur = 12;
+    c.shadowOffsetY = 7;
+    c.fillStyle = '#2b3030';
+    c.strokeStyle = afford ? '#7f9aa2' : '#5a6164';
+    c.lineWidth = 5;
+    c.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = Math.PI / 8 + i * Math.PI / 4, r = 37;
+      i ? c.lineTo(Math.cos(a) * r, Math.sin(a) * r) : c.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    c.closePath();
+    c.fill();
+    c.stroke();
+    c.shadowColor = 'transparent';
+
+    c.fillStyle = '#102939';
+    c.beginPath(); c.arc(0, 0, 25, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = afford ? `rgba(89,216,255,${0.55 + pulse * 0.45})` : '#4a5257';
+    c.lineWidth = 3;
+    c.beginPath(); c.arc(0, 0, 25, 0, Math.PI * 2); c.stroke();
+
+    if (hover) {
+      c.strokeStyle = '#ffe16a';
+      c.lineWidth = 3;
+      c.setLineDash([7, 6]);
+      c.lineDashOffset = -this.time * 26;
+      c.beginPath(); c.arc(0, 0, 43, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+    }
+
+    c.fillStyle = afford ? '#9ef2ff' : '#5b6c75';
+    c.font = '700 34px system-ui, sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('+', 0, 1);
+    c.textBaseline = 'alphabetic';
+    c.restore();
+  };
+
+  game.drawTower = function (c, t) {
+    const baseName = `${t.type}_base_l${t.level}`;
+    const turretName = `${t.type}_turret_l${t.level}`;
+    const w = spriteWidth(baseName, TOWER_SCALE);
+    if (!w) return Object.getPrototypeOf(this).drawTower.call(this, c, t);
+
+    if (t.pulse > 0) {
+      c.save();
+      c.globalAlpha = Math.min(1, t.pulse * 1.5);
+      c.strokeStyle = '#fff6a8';
+      c.lineWidth = 5;
+      c.beginPath();
+      c.arc(t.x, t.y, 44 + (1 - t.pulse) * 22, 0, Math.PI * 2);
+      c.stroke();
+      c.restore();
+    }
+
+    blit(c, baseName, t.x, t.y, w);
+    // Recoil pushes the turret back along its own barrel axis.
+    const kick = t.recoil * (t.type === 'cannon' ? 7 : 3.5);
+    blit(c, turretName,
+      t.x - Math.cos(t.angle) * kick,
+      t.y - Math.sin(t.angle) * kick,
+      spriteWidth(turretName, TOWER_SCALE), t.angle);
+  };
+
+  game.drawEnemy = function (c, e) {
+    const ox = Math.cos(e.angle + Math.PI / 2) * e.lane;
+    const oy = Math.sin(e.angle + Math.PI / 2) * e.lane;
+    const x = e.x + ox, y = e.y + oy;
+    const name = 'enemy_' + e.type;
+    const w = e.size * 4.2;
+
+    // Contact shadow keeps units sitting on the road instead of floating.
+    c.save();
+    c.globalAlpha = 0.30;
+    c.fillStyle = '#000';
+    c.beginPath();
+    c.ellipse(x + 3, y + 5, e.size * 1.15, e.size * 0.68, 0, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+
+    if (!blit(c, name, x, y, w, e.angle)) {
+      Object.getPrototypeOf(this).drawEnemy.call(this, c, e);
+      return;
+    }
+
+    if (e.hitFlash > 0) {
+      c.save();
+      c.globalAlpha = Math.min(0.75, e.hitFlash * 8);
+      c.globalCompositeOperation = 'lighter';
+      c.fillStyle = '#fff';
+      c.beginPath(); c.arc(x, y, e.size * 1.1, 0, Math.PI * 2); c.fill();
+      c.restore();
+    }
+    if (e.slow > 0) {
+      c.save();
+      c.globalAlpha = 0.42;
+      c.strokeStyle = '#9df8ff';
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(x, y, e.size + 6, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = '#9df8ff33';
+      c.fill();
+      c.restore();
+    }
+    this.drawHealthBar(c, e, x, y);
+  };
+
+  game.drawProjectile = function (c, p) {
+    if (p.type === 'gun') {
+      c.save();
+      c.strokeStyle = '#ffe9a8';
+      c.lineWidth = 3.5;
+      c.lineCap = 'round';
+      c.beginPath(); c.moveTo(p.px, p.py); c.lineTo(p.x, p.y); c.stroke();
+      c.strokeStyle = '#fff';
+      c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(p.px, p.py); c.lineTo(p.x, p.y); c.stroke();
+      c.restore();
+    } else if (p.type === 'cannon') {
+      c.save();
+      c.shadowColor = '#ff9f3f';
+      c.shadowBlur = 14;
+      c.translate(p.x, p.y);
+      c.rotate(p.spin);
+      c.fillStyle = '#2c2c2e';
+      c.strokeStyle = '#ff9f3f';
+      c.lineWidth = 3;
+      c.beginPath(); c.arc(0, 0, 8, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.fillStyle = '#ffd08a';
+      c.fillRect(-2, -9, 4, 4);
+      c.restore();
+    } else {
+      c.save();
+      c.shadowColor = '#9bf6ff';
+      c.shadowBlur = 16;
+      c.translate(p.x, p.y);
+      c.rotate(p.spin * 0.6);
+      c.fillStyle = '#dbffff';
+      c.strokeStyle = '#5fd6f2';
+      c.lineWidth = 2;
+      c.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3, r = i % 2 ? 3.5 : 7;
+        i ? c.lineTo(Math.cos(a) * r, Math.sin(a) * r) : c.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      c.closePath(); c.fill(); c.stroke();
+      c.restore();
+    }
+  };
+}
+
+/* The runtime may not have booted yet; poll briefly rather than racing it. */
+let waited = 0;
+const timer = setInterval(() => {
+  const game = window.funTDGame;
+  waited += 90;
+  if (!game) {
+    if (waited > 8000) clearInterval(timer);
+    return;
+  }
+  clearInterval(timer);
+  loadSprites()
+    .then(ok => {
+      if (ok) install(game);
+      else console.warn('Dustwall art: sprite set unavailable, using procedural fallback');
+    })
+    .catch(err => console.warn('Dustwall art: sprite load failed, using procedural fallback', err));
+}, 90);
 })();

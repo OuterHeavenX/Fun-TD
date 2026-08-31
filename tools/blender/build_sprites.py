@@ -533,6 +533,71 @@ def enemy_boss():
     polar(8, 0.90, 0, lambda i, x, y, a: cyl(0.07, 0.16, (x, y, 0.68), material=gold, bevel=0.008))
 
 
+def enemy_splitter():
+    """Splits into mites when killed, so the seam is the whole read."""
+    body = mat("b", (0.14, 0.50, 0.42), 0.30, 0.46)
+    shell = mat("s", (0.30, 0.60, 0.52), 0.55, 0.38)
+    seam = _eye((0.55, 1.0, 0.85), 1.5)
+    dark = mat("d", (0.05, 0.20, 0.17), 0.30, 0.60)
+    for side in (-1, 1):
+        # Two half-shells with a lit gap between them.
+        cyl(0.44, 0.34, (-0.02, side * 0.20, 0.28), material=shell)
+        box((0.60, 0.16, 0.20), (0.02, side * 0.42, 0.30), material=body)
+        box((0.30, 0.13, 0.12), (-0.30, side * 0.30, 0.20), material=dark)
+    box((0.86, 0.10, 0.24), (0.02, 0, 0.34), material=seam)
+    cone(0.26, 0.05, 0.34, (0.52, 0, 0.30), (0, math.radians(90), 0), verts=4, material=body)
+    ball(0.10, (0.30, 0, 0.48), material=seam)
+
+
+def enemy_mite():
+    """What a splitter leaves behind: small, fast, and mostly legs."""
+    body = mat("b", (0.36, 0.74, 0.44), 0.25, 0.48)
+    dark = mat("d", (0.08, 0.26, 0.16), 0.30, 0.58)
+    eye = _eye((0.80, 1.0, 0.55), 1.6)
+    for side in (-1, 1):
+        for j, ang in enumerate((34, -12)):
+            box((0.34, 0.09, 0.08), (-0.06 + j * 0.16, side * 0.28, 0.10),
+                (0, 0, math.radians(side * ang)), material=dark)
+    ball(0.26, (0, 0, 0.26), material=body)
+    bpy.context.object.scale = (1.15, 0.92, 0.72)
+    cone(0.14, 0.02, 0.26, (0.30, 0, 0.24), (0, math.radians(90), 0), material=dark)
+    ball(0.075, (0.14, 0, 0.38), material=eye)
+
+
+def enemy_surger():
+    """Storm-charged: arc nodes ride on top where the camera can see them."""
+    body = mat("b", (0.16, 0.46, 0.62), 0.35, 0.36)
+    fin = mat("f", (0.28, 0.62, 0.76), 0.55, 0.30)
+    spark = _eye((0.55, 0.92, 1.0), 2.0)
+    dark = mat("d", (0.06, 0.18, 0.26), 0.35, 0.55)
+    cone(0.32, 0.06, 0.86, (0.12, 0, 0.28), (0, math.radians(90), 0), material=body)
+    for side in (-1, 1):
+        box((0.50, 0.34, 0.08), (-0.08, side * 0.30, 0.30), (0, 0, math.radians(side * -30)), material=fin)
+        ball(0.075, (-0.26, side * 0.42, 0.36), material=spark)
+    box((0.46, 0.16, 0.14), (0.02, 0, 0.44), material=dark)
+    for j in range(3):
+        ball(0.07, (-0.14 + j * 0.20, 0, 0.54), material=spark)
+    box((0.20, 0.24, 0.10), (-0.34, 0, 0.30), material=dark)
+
+
+def enemy_warden():
+    """Carries a shield wider than its hull; that overhang is the silhouette."""
+    body = mat("b", (0.20, 0.16, 0.34), 0.45, 0.44)
+    plate = mat("p", (0.36, 0.34, 0.48), 0.88, 0.30)
+    shield = mat("s", (0.52, 0.44, 0.72), 0.70, 0.26)
+    glow = _eye((0.72, 0.52, 1.0), 1.5)
+    cyl(0.46, 0.34, (-0.10, 0, 0.26), verts=8, material=body, bevel=0.03, smooth=False)
+    box((0.66, 0.26, 0.20), (-0.10, 0, 0.44), material=plate)
+    for side in (-1, 1):
+        box((0.44, 0.16, 0.24), (-0.16, side * 0.40, 0.24), material=plate)
+    # Shield: a broad slab standing proud of the nose.
+    box((0.20, 1.16, 0.44), (0.46, 0, 0.32), material=shield)
+    box((0.10, 1.00, 0.10), (0.58, 0, 0.50), material=glow)
+    for side in (-1, 1):
+        box((0.16, 0.16, 0.30), (0.46, side * 0.50, 0.36), material=plate)
+    ball(0.09, (-0.10, 0, 0.50), material=glow)
+
+
 # (builder, resolution, ortho framing) — each unit is framed to fill its sprite.
 ENEMIES = {
     "grunt": (enemy_grunt, 160, 1.7),
@@ -540,6 +605,10 @@ ENEMIES = {
     "armored": (enemy_armored, 192, 1.9),
     "heavy": (enemy_heavy, 224, 2.0),
     "boss": (enemy_boss, 320, 2.9),
+    "splitter": (enemy_splitter, 176, 1.9),
+    "mite": (enemy_mite, 112, 1.3),
+    "surger": (enemy_surger, 176, 1.9),
+    "warden": (enemy_warden, 192, 2.0),
 }
 
 

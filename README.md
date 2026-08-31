@@ -40,17 +40,25 @@ Every tower, enemy, prop and the command core is modelled procedurally in Blende
 `tools/blender/build_sprites.py` and rendered straight down through an orthographic
 camera with Freestyle outlines. Towers render as two parts — a static base and a
 turret pivoting about the image centre — so the 2D game can rotate the turret on top
-of the base and keep the perspective honest.
+of the base and keep the perspective honest. 46 parts in total: four tower families ×
+four levels × two halves, nine enemy types, the command core and four props.
 
 ```bash
 npm run sprites     # needs Blender on PATH; writes assets/sprites/ + manifest.json
 ```
 
 Each part is framed individually and records its own pixels-per-unit in the manifest,
-so the runtime places any sprite correctly without special-casing it. `src/dustwall-art.js`
-consumes the set and falls back to the runtime's own procedural drawing if the manifest
-or any image fails to load. Static scenery is painted once into an offscreen canvas
-rather than every frame.
+so the runtime places any sprite correctly without special-casing it.
+
+`src/art/sprite-pack.js` loads the set once and is shared by the whole campaign. It
+carries a terrain palette per sector — dust, frost, ash, tide, night, void — and two
+installers, because the sector runtimes were written at different times and disagree on
+their draw signatures (`drawTower(ctx, tower)` in sectors 01–03, `drawTower(tower)` in
+04 and 06). Sector 01 keeps `src/dustwall-art.js` for its hand-placed scenery;
+`src/sector-art.js` drives the rest off the route the loader exposes, so adding art to a
+sector needs no per-sector art code. Nothing is required: if the manifest or any image
+fails to load, no installer runs and every sector keeps its own procedural drawing.
+Static terrain is painted once into an offscreen canvas rather than every frame.
 
 ## Balance tooling
 
@@ -125,7 +133,10 @@ static server.
   62 kills and 3,352 damage — the authored enemy count and total health for those waves.
 - **Load**: 260 enemies queued to arrive almost at once against 12 maxed towers holds a
   16.7ms median and 16.8ms p95 frame time (60fps) with 220 units alive.
-- Sectors 02, 04, 06 and endless mode all boot clean against the shared HUD rewrite.
+- Sectors 02–06 and endless mode all boot clean, load all 46 sprites, and play a wave
+  with towers built. Sectors 02, 03 and 04 pick up the full themed treatment (terrain,
+  route, scenery, pads, towers, enemies, core); 06 gets towers, enemies and core over its
+  own background; 05 is unchanged for the reason above.
 - `npm run balance`: effective health ramps 460 (wave 1) → 91,795 (wave 20); every wave
   resolves inside 62s for the scripted optimal player.
 
@@ -137,8 +148,12 @@ playthrough.
 - The scripted optimal and average players both finish Sector 01 at full health; only the
   unpractised tier takes real damage. That suits an opening campaign sector, but the
   spread is narrower than it should be for the later ones, which have not been retuned.
-- Sectors 02–06 keep the old three-tower balance and are still balanced by `loader.js`
-  regex patching.
+- Only Sector 01 has been rebalanced. Sectors 02–06 keep their original numbers and are
+  still balanced by `loader.js` regex patching.
+- Sector 05 draws everything inline inside `draw()` with no overridable methods, so it
+  keeps its original art. Sectors 04 and 06 get the sprite towers, enemies and core but
+  still draw their own build pads, and Sector 06 keeps its own background because it has
+  no world-drawing method to replace.
 - Audio is synthesised at runtime; there is no authored music.
 
 ## Assets and licensing

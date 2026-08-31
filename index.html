@@ -7,6 +7,7 @@
 <title>FUN TD — Swarm Defense</title>
 <link rel="stylesheet" href="styles/main.css">
 <link rel="stylesheet" href="styles/milestones.css">
+<link rel="stylesheet" href="styles/gameflow.css">
 </head>
 <body>
 <main id="app">
@@ -21,22 +22,33 @@
   <div id="subhud"><span>WAVE <b id="wave">1</b>/20</span><span>BASE <b id="hp">100</b></span></div>
   <div id="waveIntel" aria-live="polite"></div>
   <div id="milestoneAlert" class="milestone-alert" aria-live="assertive"></div>
-  <div id="versionBadge" aria-label="Game version">v0.2.0-alpha</div>
+  <div id="versionBadge" aria-label="Game version">v0.3.0-alpha</div>
   <div id="toast"></div>
   <div id="towerMenu" class="panel hidden"></div>
   <button id="startWave" class="start-wave">START WAVE 1</button>
   <div id="cornerControls"><button id="speed">1×</button><button id="pause">Ⅱ</button><button id="sound">♪</button></div>
+  <div id="pauseFlowBadge">PAUSED</div>
+  <div id="gameFlowOverlay" aria-live="assertive">
+    <section class="flow-card">
+      <div id="flowEyebrow" class="flow-eyebrow"></div>
+      <div id="flowIcon" class="flow-icon"></div>
+      <h2 id="flowTitle"></h2>
+      <p id="flowCopy"></p>
+      <div id="flowActions" class="flow-actions"></div>
+    </section>
+  </div>
   <div id="intro" class="modal">
     <section>
       <div class="eyebrow">DUSTWALL DEFENSE</div>
       <h1>FUN <em>TD</em></h1>
       <p>Build. Blast the swarm. Upgrade. Repeat.</p>
-      <div class="intro-version">v0.2.0-alpha</div>
+      <div class="intro-version">v0.3.0-alpha</div>
       <button id="play">DEFEND THE BASE</button>
     </section>
   </div>
 </main>
 <script defer src="src/runtime.js"></script>
 <script defer src="src/milestones.js"></script>
+<script defer src="src/gameflow.js"></script>
 </body>
 </html>

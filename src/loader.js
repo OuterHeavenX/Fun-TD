@@ -1,1 +1,33 @@
-(()=>{const q=new URLSearchParams(location.search),raw=q.get('sector'),sector=raw==='3'?3:raw==='2'?2:1;window.FUN_TD_SECTOR=sector;document.documentElement.dataset.sector=String(sector);const eyebrow=document.querySelector('.eyebrow'),title=document.querySelector('.modal h1'),copy=document.querySelector('.modal p');if(sector===3){document.title='FUN TD — Ashfall Foundry';if(eyebrow)eyebrow.textContent='SECTOR 03 · ASHFALL FOUNDRY';if(title)title.innerHTML='FUN <em>TD</em>';if(copy)copy.textContent='Hold the foundry. Break the splitters. Survive the heat.'}else if(sector===2){document.title='FUN TD — Frostline Pass';if(eyebrow)eyebrow.textContent='SECTOR 02 · FROSTLINE PASS';if(title)title.innerHTML='FUN <em>TD</em>';if(copy)copy.textContent='Hold the frozen pass. Break the swarm. Survive the storm.'}else if(eyebrow)eyebrow.textContent='SECTOR 01 · DUSTWALL DEFENSE';const script=document.createElement('script');script.src=sector===3?'src/sector3.js':sector===2?'src/sector2.js':'src/runtime.js';script.defer=true;document.body.appendChild(script);})();
+(()=>{
+const q=new URLSearchParams(location.search),raw=q.get('sector'),sector=raw==='3'?3:raw==='2'?2:1;window.FUN_TD_SECTOR=sector;document.documentElement.dataset.sector=String(sector);
+const eyebrow=document.querySelector('.eyebrow'),title=document.querySelector('.modal h1'),copy=document.querySelector('.modal p');
+if(sector===3){document.title='FUN TD — Ashfall Foundry';if(eyebrow)eyebrow.textContent='SECTOR 03 · ASHFALL FOUNDRY';if(title)title.innerHTML='FUN <em>TD</em>';if(copy)copy.textContent='Hold the foundry. Break the splitters. Survive the heat.'}
+else if(sector===2){document.title='FUN TD — Frostline Pass';if(eyebrow)eyebrow.textContent='SECTOR 02 · FROSTLINE PASS';if(title)title.innerHTML='FUN <em>TD</em>';if(copy)copy.textContent='Hold the frozen pass. Break the swarm. Survive the storm.'}
+else if(eyebrow)eyebrow.textContent='SECTOR 01 · DUSTWALL DEFENSE';
+const n=k=>Math.max(0,+localStorage.getItem('funTD_research_'+k)||0);
+window.FUN_TD_META={
+  gunLevel:n('gun'),cannonLevel:n('cannon'),freezeLevel:n('freeze'),
+  startGold:n('startGold')*50,baseHp:n('baseHp')*10,comboBonus:n('combo')*.2,
+  sellRate:Math.min(.85,.7+n('sell')*.05),flawlessBonus:n('flawless')*10,
+  freezeDuration:n('freeze')*.3
+};
+const file=sector===3?'src/sector3.js':sector===2?'src/sector2.js':'src/runtime.js';
+function patch(src){
+  src=src.replace('(()=>{','(()=>{const META=window.FUN_TD_META||{};');
+  src=src.replace(/damage:18,/g,"damage:18*(1+(META.gunLevel||0)*.05),");
+  src=src.replace(/rate:4\.5,/g,"rate:4.5*(1+(META.gunLevel||0)*.04)*(META.gunLevel>=3?1.12:1),");
+  src=src.replace(/range:155,/g,"range:155*(META.gunLevel>=3?1.08:1),");
+  src=src.replace(/damage:55,/g,"damage:55*(1+(META.cannonLevel||0)*.06),");
+  src=src.replace(/splash:55,/g,"splash:55*(1+(META.cannonLevel||0)*.08)*(META.cannonLevel>=3?1.2:1),");
+  src=src.replace(/range:160,/g,"range:160*(META.freezeLevel>=3?1.1:1),");
+  src=src.replace(/slow:\.30/g,"slow:Math.min(.55,.30+(META.freezeLevel||0)*.05)");
+  src=src.replace(/slow:\.3,/g,"slow:Math.min(.55,.3+(META.freezeLevel||0)*.05),");
+  src=src.replace(/this\.gold=(\d+);this\.baseHp=100;/g,(_,g)=>`this.gold=${g}+(META.startGold||0);this.baseHp=100+(META.baseHp||0);`);
+  src=src.replace(/Math\.floor\(t\.invested\*\.7\)/g,"Math.floor(t.invested*(META.sellRate||.7))");
+  src=src.replace(/this\.comboTimer=1\.35/g,"this.comboTimer=1.35+(META.comboBonus||0)");
+  src=src.replace(/slowTime=2\.2/g,"slowTime=2.2+(META.freezeDuration||0)");
+  src=src.replace(/\(flawless\?60\+this\.waveIndex\*5:0\)/g,"(flawless?60+this.waveIndex*5+(META.flawlessBonus||0):0)");
+  return src;
+}
+fetch(file,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('runtime fetch failed');return r.text()}).then(src=>{const s=document.createElement('script');s.textContent=patch(src);document.body.appendChild(s)}).catch(err=>{console.warn('Research patch fallback',err);const s=document.createElement('script');s.src=file;s.defer=true;document.body.appendChild(s)});
+})();

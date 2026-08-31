@@ -63,8 +63,9 @@ Static terrain is painted once into an offscreen canvas rather than every frame.
 ## Balance tooling
 
 ```bash
-npm run balance     # per-wave table for a scripted player
+npm run balance     # per-wave table for a scripted player (Sector 01)
 npm run tune        # parameter sweep scored against three skill tiers
+npm run audit       # difficulty-curve shape across all six sectors
 ```
 
 `tools/balance-sim.js` lifts the balance data straight out of `src/runtime.js` — the
@@ -139,9 +140,32 @@ static server.
   own background; 05 is unchanged for the reason above.
 - `npm run balance`: effective health ramps 460 (wave 1) → 91,795 (wave 20); every wave
   resolves inside 62s for the scripted optimal player.
+- **Load, later sectors**: the largest authored wave rendered with no towers so the whole
+  crowd stays on screen holds a 16.7ms median frame time (60fps) in sectors 02, 03, 04
+  and 06 at 59–66 concurrent sprite-drawn enemies.
 
 Not done: testing on physical phone hardware, and a full unassisted 20-wave human
 playthrough.
+
+### Where the campaign's difficulty comes from
+
+`npm run audit` reads every sector's wave table and separates the two ways a
+tower-defense campaign can get harder — more enemies, or tougher ones:
+
+| Sector | wave 1 → final HP | from crowd size | from tougher units | peak wave |
+| --- | --- | --- | --- | --- |
+| 01 Dustwall | 199× | 3.8× | **52×** | 58 |
+| 02 Frostline | 24× | 10.4× | 2.3× | 161 |
+| 03 Ashfall | 26× | 10.5× | 2.4× | 160 |
+| 04 Black Tide | 23× | 10.5× | 2.2× | 162 |
+| 05 Nightfall | 22× | 7.7× | 2.8× | 160 |
+| 06 Null Fortress | 22× | 6.9× | 3.1× | 149 |
+
+Sectors 02–06 lean on crowd size, peaking at roughly 160 units in a single wave.
+That is a legitimate design for a swarm defence and it renders at 60fps, so it has
+been measured and left alone rather than rewritten to match Sector 01's shape —
+their per-enemy ramp of 2.2–3.1× means units *do* get tougher, which is the defect
+Sector 01 actually had (its ramp was 1.0×, a wave-20 grunt had wave-1 health).
 
 ## Known limitations
 

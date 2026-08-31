@@ -108,14 +108,29 @@ modifiers.
 
 ### Validation record (2026-08-31)
 
+Driven in headless Chromium at 430×932 (phone) and 1440×900 (desktop), against a local
+static server.
+
 - `npm test`: 32/32 passing. Six of these were failing on `main` before this work — they
   asserted against the unused `src/data` stubs and have been repointed at the live model.
-- Headless Chromium at 430×932 and 1440×900: sector 01 boots, the sprite set loads, all
-  four tower families build, upgrade, retarget and sell, 13 waves play through, and both
-  the victory and defeat flow overlays fire. No console errors or failed requests.
+- Sector 01 boots, loads all 42 sprites, and plays: all four tower families build,
+  upgrade, retarget and sell; 13 waves played through in one session; 334 kills recorded.
+  No console errors and no failed requests.
+- **Defeat**: building nothing overruns the base and raises the flow overlay
+  (`BASE OVERRUN`, retry actions present).
+- **Victory**: the Sand Titan spawns at 12,000 HP, dies to a maxed line in 8.5s at 3×,
+  and the flow overlay reports `DUSTWALL HELD`, a ★★★ medal, and unlocks Frostline Pass.
+  `funTD_sector1Clear` and `funTD_sector1Stars` persist.
+- **Per-tower accounting**: each family fought waves 1–4 alone and was credited exactly
+  62 kills and 3,352 damage — the authored enemy count and total health for those waves.
+- **Load**: 260 enemies queued to arrive almost at once against 12 maxed towers holds a
+  16.7ms median and 16.8ms p95 frame time (60fps) with 220 units alive.
 - Sectors 02, 04, 06 and endless mode all boot clean against the shared HUD rewrite.
 - `npm run balance`: effective health ramps 460 (wave 1) → 91,795 (wave 20); every wave
   resolves inside 62s for the scripted optimal player.
+
+Not done: testing on physical phone hardware, and a full unassisted 20-wave human
+playthrough.
 
 ## Known limitations
 

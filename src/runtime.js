@@ -402,7 +402,7 @@ class Tower {
 }
 
 class Projectile {
-  constructor(x, y, stats, type, target, aimX, aimY) {
+  constructor(x, y, stats, type, target, aimX, aimY, tower) {
     this.x = x; this.y = y;
     this.px = x; this.py = y;
     this.speed = stats.projectile;
@@ -414,6 +414,8 @@ class Projectile {
     this.type = type;
     this.color = stats.color;
     this.target = target;
+    // Credit kills and damage back to the tower that fired.
+    this.tower = tower;
     // Mortars commit to a ground point so they can genuinely miss a fast unit;
     // everything else tracks its target.
     this.ballistic = aimX !== undefined;
@@ -929,13 +931,13 @@ class Game {
       const lead = target.speed * (1 - target.slow) * flight;
       const aimX = target.x + Math.cos(target.angle) * lead;
       const aimY = target.y + Math.sin(target.angle) * lead;
-      this.projectiles.push(new Projectile(muzzleX, muzzleY, s, tower.type, target, aimX, aimY));
+      this.projectiles.push(new Projectile(muzzleX, muzzleY, s, tower.type, target, aimX, aimY, tower));
       this.burst(muzzleX, muzzleY, s.color, 8);
       this.shake = Math.max(this.shake, 2.4);
       Sound.play('mortar', 70);
       return;
     }
-    this.projectiles.push(new Projectile(muzzleX, muzzleY, s, tower.type, target));
+    this.projectiles.push(new Projectile(muzzleX, muzzleY, s, tower.type, target, undefined, undefined, tower));
     this.burst(muzzleX, muzzleY, s.color, 4);
     Sound.play(tower.type === 'frost' ? 'chill' : 'shot', tower.type === 'frost' ? 90 : 45);
   }
@@ -983,7 +985,7 @@ class Game {
         const d = Math.hypot(e.x - p.x, e.y - p.y);
         if (d > p.splash) continue;
         // Full damage at the centre, 45% at the rim.
-        this.damage(e, p.damage * (1 - 0.55 * (d / p.splash)), p.pierce, null);
+        this.damage(e, p.damage * (1 - 0.55 * (d / p.splash)), p.pierce, p.tower);
       }
       return;
     }
@@ -992,7 +994,7 @@ class Game {
         p.target.slow = Math.max(p.target.slow, p.slow);
         p.target.slowTime = p.slowTime;
       }
-      this.damage(p.target, p.damage, p.pierce, null);
+      this.damage(p.target, p.damage, p.pierce, p.tower);
     }
     this.burst(p.x, p.y, p.color, 7);
     if (p.type === 'frost') this.ring(p.x, p.y, '#bffcff', 0.24, 8, 32);

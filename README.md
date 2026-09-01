@@ -124,82 +124,48 @@ Development mode is available through query parameters: `?sector=2`…`?sector=6
 later sectors, `?endless=1` for endless defence, `?challenge=rush|budget|fragile` for
 modifiers.
 
-### Validation record (2026-08-31)
+### Validation record (2026-09-01)
 
 Driven in headless Chromium at 430×932 (phone) and 1440×900 (desktop), against a local
 static server.
 
-- `npm test`: 32/32 passing. Six of these were failing on `main` before this work — they
-  asserted against the unused `src/data` stubs and have been repointed at the live model.
-- Sector 01 boots, loads all 42 sprites, and plays: all four tower families build,
-  upgrade, retarget and sell; 13 waves played through in one session; 334 kills recorded.
-  No console errors and no failed requests.
-- **Defeat**: building nothing overruns the base and raises the flow overlay
-  (`BASE OVERRUN`, retry actions present).
-- **Victory**: the Sand Titan spawns at 12,000 HP, dies to a maxed line in 8.5s at 3×,
-  and the flow overlay reports `DUSTWALL HELD`, a ★★★ medal, and unlocks Frostline Pass.
-  `funTD_sector1Clear` and `funTD_sector1Stars` persist.
-- **Per-tower accounting**: each family fought waves 1–4 alone and was credited exactly
-  62 kills and 3,352 damage — the authored enemy count and total health for those waves.
-- **Load**: 260 enemies queued to arrive almost at once against 12 maxed towers holds a
-  16.7ms median and 16.8ms p95 frame time (60fps) with 220 units alive.
-- Sectors 02–06 and endless mode all boot clean, load all 46 sprites, and play a wave
-  with towers built. Sectors 02–05 pick up the full themed treatment; 06 gets towers,
-  enemies, core and pads over its own background.
-- Splitting Sector 05's `draw()` into overridable methods was verified as a pure
-  refactor: with the sprite manifest blocked, a pinned scene of 6 towers and all 6 enemy
-  types renders to a byte-identical PNG and pixel hash before and after the change. The
-  same check covers the Sector 04 and 06 pad hooks.
-- `npm run balance`: effective health ramps 460 (wave 1) → 91,795 (wave 20); every wave
-  resolves inside 62s for the scripted optimal player.
-- **Load, later sectors**: the largest authored wave rendered with no towers so the whole
-  crowd stays on screen holds a 16.7ms median frame time (60fps) in sectors 02, 03, 04
-  and 06 at 59–66 concurrent sprite-drawn enemies.
+- `npm test`: 65/65 passing.
+- All six sectors and endless mode boot clean, load all 46 sprites, and play with towers
+  built. Sectors 01–05 take the full themed treatment; 06 takes everything but its
+  background, which it paints inline.
+- **Research plumbing**: every sector's effective tower stats, enemy speeds, starting gold
+  and base health captured in the browser under a heavy research load plus a challenge
+  modifier, before and after moving off `loader.js` string patching. Sectors 02, 03, 05
+  and 06 came out bit-identical; Sector 04 changed only in the intended direction, its
+  gun damage moving 20.7 → 23.184 to match what the other five already had.
+- **Refactor safety**: splitting Sector 05's `draw()` and Sector 06's world painting into
+  overridable methods was verified pixel-identical — same PNG byte count and pixel hash
+  with the sprite manifest blocked — as were the Sector 04/06 pad hooks.
+- **Wave length**: every sector probed against a fully maxed line, at 3× speed. Waves 19
+  and 20 are the ones worth reading:
 
-Not done: testing on physical phone hardware, and a full unassisted 20-wave human
-playthrough.
+  | Sector | wave 19 | wave 20 | leaked at wave 20 |
+  | --- | --- | --- | --- |
+  | 01 Dustwall | 13.1s | 16.1s | none |
+  | 02 Frostline | 16.5s | 30.0s | 10 |
+  | 03 Ashfall | 19.6s | 34.4s | 10 |
+  | 04 Black Tide | 17.8s | 32.4s | 19 |
+  | 05 Nightfall | 15.2s | 20.8s | none |
+  | 06 Null Fortress | 18.4s | 31.1s | 42 |
 
-### Where the campaign's difficulty comes from
+  Every finale still costs a maxed line something, which is the intent. Sector 06 is the
+  hardest wave in the game, which suits the final assault — and that figure is with only
+  9 of its 12 pads built.
 
-`npm run audit` reads every sector's wave table and separates the two ways a
-tower-defense campaign can get harder — more enemies, or tougher ones. Sectors
-02–06 used to get almost all of it from crowd size, peaking at around 160 units
-in one wave while a wave-20 unit was barely tougher than a wave-1 one:
+  Worth recording how that table was got wrong first: the probe drove each sector's own
+  build and upgrade methods, and sectors 05 and 06 have neither — both live inside their
+  menu handlers, and the upgrade one is called `upMenu`, which the probe did not know
+  about. Those two were therefore measured with **level-1 towers** and looked disastrous
+  (wave 20 at 49s and 52s, leaking 46 and 132). That was the measurement, not the game.
+- **Load**: 60fps median in all six sectors, including with effects saturated to their
+  420-effect cap, and at 220 concurrent enemies in Sector 01.
 
-| Sector | HP ramp | from crowd size | from tougher units | peak wave |
-| --- | --- | --- | --- | --- |
-| 01 Dustwall | 199× | 3.8× | 52× | 58 |
-| 02 Frostline | 139× (was 24×) | 3.6× (was 10.4×) | **39×** (was 2.3×) | 58 (was 161) |
-| 03 Ashfall | 159× (was 26×) | 3.9× (was 10.5×) | **41×** (was 2.4×) | 62 (was 160) |
-| 04 Black Tide | 114× (was 23×) | 2.8× (was 10.5×) | **41×** (was 2.2×) | 50 (was 162) |
-| 05 Nightfall | 114× (was 22×) | 2.6× (was 7.7×) | **43×** (was 2.8×) | 57 (was 160) |
-| 06 Null Fortress | 98× (was 22×) | 2.3× (was 6.9×) | **43×** (was 3.1×) | 53 (was 149) |
-
-`npm run fit` derives each sector's target from its *own* capacity — how many
-build pads it has and how much route its towers shoot along — measured against
-Sector 01, which is already tuned and verified, with a gentle campaign-long
-multiplier so later sectors sit above earlier ones. `tools/apply-curve.js` then
-writes that curve into the sector files.
-
-The count reduction ramps in across the campaign rather than applying flat: a
-single multiplier that lands wave 20 at a readable size also strips wave 1 down
-to four or five units, which is a worse opening than these sectors already had.
-Every sector keeps its original wave-1 crowd.
-
-Two things the numbers alone did not catch, and a wave-length measurement did.
-The first fit compared Sector 01's *armour-adjusted* health against the others'
-*raw* health — Sector 01 is the only sector with armour, and the only one whose
-towers pierce it — which asked them to field far more actual health than Sector
-01 does while their towers pierce nothing. Its wave 20 took 44 seconds against
-Sector 01's 17, and leaked. The second was that re-running the fit against files
-it had already rewritten compounded silently and produced a plausible-looking
-factor measured from the wrong baseline; the tool now refuses to fit a sector
-that already carries a curve.
-
-Boss health is the fitted fifth-of-the-final-wave figure cut by a third, for the
-same reason: measured against a maxed line, the fitted value made wave 20 roughly
-twice as long as any other wave, because these sectors have no armour-pierce
-mechanic to bring against a single large health pool the way Sector 01 does.
+Not done: physical phone hardware, and a full unassisted human playthrough of any sector.
 
 ## Known limitations
 

@@ -74,6 +74,7 @@ offscreen canvas rather than every frame.
 npm run balance     # per-wave table for a scripted player (Sector 01)
 npm run tune        # parameter sweep scored against three skill tiers
 npm run audit       # difficulty-curve shape across all six sectors
+npm run fit         # solve the later sectors' curve from their own capacity
 ```
 
 `tools/balance-sim.js` lifts the balance data straight out of `src/runtime.js` — the
@@ -113,7 +114,7 @@ to play; Node is needed only for the tests and Blender only to regenerate art.
 
 ## Tests
 
-`npm test` — 41 deterministic tests covering pad placement against the route, the
+`npm test` — 65 deterministic tests covering pad placement against the route, the
 difficulty ramp, wave readability, upgrade pricing, refunds, armour and pierce, tower
 role separation, targeting modes, path interpolation, save migration, 250-enemy spatial
 indexing and duplicate-loop prevention, plus scripted-player runs asserting that a
@@ -161,30 +162,53 @@ playthrough.
 ### Where the campaign's difficulty comes from
 
 `npm run audit` reads every sector's wave table and separates the two ways a
-tower-defense campaign can get harder — more enemies, or tougher ones:
+tower-defense campaign can get harder — more enemies, or tougher ones. Sectors
+02–06 used to get almost all of it from crowd size, peaking at around 160 units
+in one wave while a wave-20 unit was barely tougher than a wave-1 one:
 
-| Sector | wave 1 → final HP | from crowd size | from tougher units | peak wave |
+| Sector | HP ramp | from crowd size | from tougher units | peak wave |
 | --- | --- | --- | --- | --- |
-| 01 Dustwall | 199× | 3.8× | **52×** | 58 |
-| 02 Frostline | 24× | 10.4× | 2.3× | 161 |
-| 03 Ashfall | 26× | 10.5× | 2.4× | 160 |
-| 04 Black Tide | 23× | 10.5× | 2.2× | 162 |
-| 05 Nightfall | 22× | 7.7× | 2.8× | 160 |
-| 06 Null Fortress | 22× | 6.9× | 3.1× | 149 |
+| 01 Dustwall | 199× | 3.8× | 52× | 58 |
+| 02 Frostline | 139× (was 24×) | 3.6× (was 10.4×) | **39×** (was 2.3×) | 58 (was 161) |
+| 03 Ashfall | 159× (was 26×) | 3.9× (was 10.5×) | **41×** (was 2.4×) | 62 (was 160) |
+| 04 Black Tide | 114× (was 23×) | 2.8× (was 10.5×) | **41×** (was 2.2×) | 50 (was 162) |
+| 05 Nightfall | 114× (was 22×) | 2.6× (was 7.7×) | **43×** (was 2.8×) | 57 (was 160) |
+| 06 Null Fortress | 98× (was 22×) | 2.3× (was 6.9×) | **43×** (was 3.1×) | 53 (was 149) |
 
-Sectors 02–06 lean on crowd size, peaking at roughly 160 units in a single wave.
-That is a legitimate design for a swarm defence and it renders at 60fps, so it has
-been measured and left alone rather than rewritten to match Sector 01's shape —
-their per-enemy ramp of 2.2–3.1× means units *do* get tougher, which is the defect
-Sector 01 actually had (its ramp was 1.0×, a wave-20 grunt had wave-1 health).
+`npm run fit` derives each sector's target from its *own* capacity — how many
+build pads it has and how much route its towers shoot along — measured against
+Sector 01, which is already tuned and verified, with a gentle campaign-long
+multiplier so later sectors sit above earlier ones. `tools/apply-curve.js` then
+writes that curve into the sector files.
+
+The count reduction ramps in across the campaign rather than applying flat: a
+single multiplier that lands wave 20 at a readable size also strips wave 1 down
+to four or five units, which is a worse opening than these sectors already had.
+Every sector keeps its original wave-1 crowd.
+
+Two things the numbers alone did not catch, and a wave-length measurement did.
+The first fit compared Sector 01's *armour-adjusted* health against the others'
+*raw* health — Sector 01 is the only sector with armour, and the only one whose
+towers pierce it — which asked them to field far more actual health than Sector
+01 does while their towers pierce nothing. Its wave 20 took 44 seconds against
+Sector 01's 17, and leaked. The second was that re-running the fit against files
+it had already rewritten compounded silently and produced a plausible-looking
+factor measured from the wrong baseline; the tool now refuses to fit a sector
+that already carries a curve.
+
+Boss health is the fitted fifth-of-the-final-wave figure cut by a third, for the
+same reason: measured against a maxed line, the fitted value made wave 20 roughly
+twice as long as any other wave, because these sectors have no armour-pierce
+mechanic to bring against a single large health pool the way Sector 01 does.
 
 ## Known limitations
 
 - The scripted optimal and average players both finish Sector 01 at full health; only the
   unpractised tier takes real damage. That suits an opening campaign sector, but the
   spread is narrower than it should be for the later ones, which have not been retuned.
-- Only Sector 01 has been rebalanced. Sectors 02–06 keep their original numbers and are
-  still balanced by `loader.js` regex patching.
+- The later sectors are tuned against Sector 01's verified curve and played through
+  headlessly, but they have no scripted-player simulator of their own the way Sector 01
+  does, so their economies are less rigorously checked than its is.
 - Sector 06 keeps its own background: it paints the world inline with no method to
   replace, so it takes the sprite towers, enemies, core and pads but not the themed
   terrain.

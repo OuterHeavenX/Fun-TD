@@ -1,0 +1,563 @@
+/* Home screen.
+ *
+ * Loaded after art-direction.css, which styles the old title card as a fixed
+ * seven-row grid; everything here is scoped under .home so those rules stop
+ * applying rather than fighting them declaration by declaration.
+ */
+
+#intro.modal { padding: 0; }
+
+#intro.modal section.home {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.4vh, 12px);
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  padding: calc(max(10px, env(safe-area-inset-top)) + 6px) 12px
+           calc(max(10px, env(safe-area-inset-bottom)) + 6px);
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(120% 70% at 50% -10%, #2f7fd6 0%, #1a56a8 38%, #0d3070 70%, #06183f 100%);
+  box-shadow: none;
+  overflow: hidden;
+  text-align: left;
+  grid-template-rows: none;
+  grid-template-columns: none;
+}
+
+/* The old stylesheet stamps a watermark and a diagonal sheen on the card. */
+#intro.modal section.home:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(115deg, #ffffff08 0 2px, transparent 2px 90px);
+  pointer-events: none;
+}
+
+.home > * { position: relative; z-index: 1; }
+
+/* --------------------------------------------------------------- top bar */
+
+.home-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 14px 5px 5px;
+  border-radius: 999px;
+  background: #0b1f3ecc;
+  box-shadow: inset 0 0 0 2px #ffffff22, 0 3px 0 #04102480;
+  min-width: 0;
+}
+
+.avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ff8ad4, #b8438f);
+  box-shadow: inset 0 0 0 3px #ffffff40, 0 2px 0 #5c1348;
+  color: #fff5fb;
+  font-size: 19px;
+}
+.avatar b {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #0b1f3e;
+  box-shadow: inset 0 0 0 2px #ffffff2e;
+  font: 800 11px/1.3 system-ui, sans-serif;
+  color: #cfe6ff;
+}
+
+.player-meta { min-width: 0; }
+.player-xp { display: flex; align-items: center; gap: 6px; color: #fff; }
+.player-xp b { font: 800 clamp(14px, 3.6vw, 19px)/1 system-ui, sans-serif; letter-spacing: .4px; }
+.xp-icon { color: #9fd4ff; font-size: 13px; }
+.player-name {
+  font: 700 10px/1.4 system-ui, sans-serif;
+  letter-spacing: 1.2px;
+  color: #8fb6de;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.xp-bar { height: 5px; border-radius: 3px; background: #04122a; overflow: hidden; }
+.xp-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6cff8f, #21c94e); }
+
+.wallet { display: flex; gap: 7px; flex: none; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 8px;
+  border-radius: 999px;
+  background: #0b1f3ecc;
+  box-shadow: inset 0 0 0 2px #ffffff22, 0 3px 0 #04102480;
+  color: #fff;
+  font: 800 clamp(12px, 3.2vw, 16px)/1 system-ui, sans-serif;
+}
+.pill i {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 12px;
+}
+.pill-cores i { background: #7b5cff; color: #ecdcff; box-shadow: inset 0 0 0 2px #b9a4ff; }
+.pill-gold i { background: #ffcf3d; color: #8a5600; box-shadow: inset 0 0 0 2px #ffe98f; }
+
+/* ---------------------------------------------------------------- season */
+
+.season {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ff63c7, #c62c8f);
+  box-shadow: inset 0 0 0 2px #ffffff3a, 0 4px 0 #6d1350;
+  color: #fff;
+}
+.season-badge {
+  display: grid;
+  place-items: center;
+  width: 26px; height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: #ffcf3d;
+  color: #7a4a00;
+  font-size: 13px;
+  box-shadow: inset 0 0 0 2px #fff0b4;
+}
+.season-name { font: 800 12px/1 system-ui, sans-serif; letter-spacing: 1.6px; flex: none; }
+.season-bar {
+  position: relative;
+  flex: 1;
+  height: 18px;
+  border-radius: 999px;
+  background: #5c0f42;
+  box-shadow: inset 0 2px 4px #00000055;
+  overflow: hidden;
+}
+.season-bar i {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(180deg, #8cff8f, #24c94e);
+}
+.season-bar b {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font: 800 11px/1 system-ui, sans-serif;
+  text-shadow: 0 1px 2px #0009;
+}
+.season-tier {
+  display: grid; place-items: center;
+  width: 24px; height: 24px;
+  flex: none;
+  border-radius: 7px;
+  background: #ffcf3d;
+  color: #7a4a00;
+  font: 800 13px/1 system-ui, sans-serif;
+  box-shadow: inset 0 0 0 2px #fff0b4;
+}
+
+/* ------------------------------------------------------------ main stage */
+
+.home-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.rail { display: flex; flex-direction: column; gap: 8px; align-self: start; }
+.rail-btn {
+  position: relative;
+  width: 52px; height: 52px;
+  min-height: 52px !important;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #2a6fc4, #14407f);
+  box-shadow: inset 0 0 0 2px #ffffff2e, 0 4px 0 #0a2450;
+  color: #eaf5ff;
+  font-size: 20px;
+  cursor: pointer;
+}
+.rail-btn:active { transform: translateY(3px); box-shadow: inset 0 0 0 2px #ffffff2e, 0 1px 0 #0a2450; }
+.rail-btn em {
+  position: absolute; left: 0; right: 0; bottom: 3px;
+  font: 700 9px/1 system-ui, sans-serif;
+  font-style: normal;
+  color: #a9cdf2;
+}
+.rail-btn .dot {
+  position: absolute; top: -4px; right: -4px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: #ff4d4d;
+  box-shadow: 0 0 0 2px #0d3070;
+}
+.rail-btn .dot:not(.on) { display: none; }
+
+.stage { display: flex; flex-direction: column; align-items: center; min-height: 0; overflow: hidden; }
+.stage .eyebrow {
+  font: 800 10px/1 system-ui, sans-serif;
+  letter-spacing: 2.6px;
+  color: #8fd0ff;
+  margin: 0 0 4px;
+  text-align: center;
+}
+.stage-title {
+  margin: 0;
+  font: 800 clamp(20px, 5.6vw, 30px)/1.05 system-ui, sans-serif !important;
+  letter-spacing: .2px;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 3px 0 #0b2a55, 0 0 18px #4aa8ff55;
+}
+.stage-waves {
+  margin-top: 2px;
+  font: 700 clamp(12px, 3.2vw, 15px)/1 system-ui, sans-serif;
+  color: #cfe6ff;
+  text-shadow: 0 2px 0 #0b2a55;
+}
+.stage-waves b { color: #fff; }
+
+/* The slab echoes the reference's tilted diorama: a canvas of the sector's own
+   terrain, sitting on a plinth. */
+.stage-slab {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  margin: clamp(4px, 1.6vh, 14px) 0;
+  padding: 7px 7px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1b4d8e, #0d2a58);
+  box-shadow: inset 0 0 0 2px #ffffff26, 0 10px 0 #071c3d, 0 18px 34px #00000066;
+  transform: perspective(1100px) rotateX(9deg);
+}
+/* The canvas is sized in script so the map keeps its 720x1120 proportions and
+   fills whatever room the slab has; CSS only supplies the frame. */
+.stage-slab canvas {
+  display: block;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px #00000055;
+}
+.stage-pin {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  color: #ffd94a;
+  font-size: 15px;
+  filter: drop-shadow(0 2px 3px #0009);
+  animation: stagePin 1.6s ease-in-out infinite;
+}
+@keyframes stagePin { 50% { transform: translate(-50%, -5px); } }
+
+.stage-bar {
+  width: min(58vw, 250px);
+  flex: none;
+  height: 12px;
+  border-radius: 999px;
+  background: #06172f;
+  box-shadow: inset 0 2px 4px #00000066, 0 0 0 2px #ffffff1a;
+  overflow: hidden;
+}
+.stage-bar i { display: block; height: 100%; width: 0; background: linear-gradient(180deg, #7dff9c, #24c94e); }
+
+.stage-copy {
+  margin: 3px 0 0 !important;
+  max-width: 34ch;
+  font: 500 clamp(11px, 2.9vw, 13px)/1.4 system-ui, sans-serif !important;
+  color: #a9cdf2 !important;
+  text-align: center;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+/* ------------------------------------------------------------- mode tags */
+
+.mode-tags { display: flex; justify-content: center; gap: 6px; }
+.mode-tag {
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  background: #0b234acc;
+  box-shadow: inset 0 0 0 2px #ffffff1f;
+  color: #6f9ac9;
+  font-size: 16px;
+}
+.mode-tag.on { color: #9fe0ff; background: #14508ecc; box-shadow: inset 0 0 0 2px #6cc4ff77; }
+
+/* --------------------------------------------------------------- actions */
+
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+.home-actions .side-action {
+  display: grid !important;
+  place-items: center;
+  gap: 3px;
+  min-height: 68px !important;
+  padding: 8px 4px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: linear-gradient(180deg, #2a6fc4, #14407f) !important;
+  box-shadow: inset 0 0 0 2px #ffffff2e, 0 5px 0 #0a2450 !important;
+  color: #eaf5ff !important;
+  font: 800 11px/1 system-ui, sans-serif !important;
+  letter-spacing: 1px;
+}
+.home-actions .side-action span { font-size: 20px; }
+.home-actions .side-action:active { transform: translateY(3px); }
+
+.home-actions .battle {
+  position: relative;
+  min-height: 68px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #ffe14a, #f0a51c) !important;
+  box-shadow: inset 0 0 0 3px #fff6c0, 0 6px 0 #a86a00, 0 10px 22px #00000055 !important;
+  color: #4a2c00 !important;
+  font: 800 clamp(20px, 5.4vw, 27px)/1 system-ui, sans-serif !important;
+  letter-spacing: 1.5px;
+}
+.home-actions .battle small {
+  position: absolute;
+  top: -9px; left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff6a5a, #d32d2d);
+  box-shadow: inset 0 0 0 2px #ffffff3d;
+  color: #fff;
+  font: 800 9px/1 system-ui, sans-serif;
+  letter-spacing: 1.4px;
+  white-space: nowrap;
+}
+.home-actions .battle:active { transform: translateY(3px); }
+
+/* ----------------------------------------------------------- chest slots */
+
+.chest-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.chest-slot {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 2px dashed #6f9ac955;
+  background: #08203fb3;
+  color: #6f9ac9;
+  font: 700 9px/1.3 system-ui, sans-serif;
+  letter-spacing: .8px;
+  text-align: center;
+}
+.chest-slot.filled {
+  border-style: solid;
+  border-color: #ffcf3d88;
+  background: linear-gradient(180deg, #1b4d8e, #0d2a58);
+  color: #ffe9a8;
+}
+.chest-slot b { display: block; font-size: 15px; }
+
+/* ------------------------------------------------------------------- nav */
+
+/* The bottom bar is the screen's floor: it sits flush with the safe area and
+   holds every tab, including the ones other scripts inject at runtime. */
+.home-nav {
+  display: flex !important;
+  order: 2;
+  gap: 6px;
+  padding: 6px 6px calc(max(2px, env(safe-area-inset-bottom)));
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(180deg, #0b2c58e0, #061b3bf2);
+  box-shadow: inset 0 1px 0 #ffffff1f, 0 -8px 24px #00000040;
+}
+.home-nav .nav-btn,
+.home-nav > button {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid !important;
+  place-items: center;
+  gap: 2px;
+  min-height: 48px !important;
+  padding: 6px 4px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #7fa9d6 !important;
+  font: 800 9px/1.1 system-ui, sans-serif !important;
+  letter-spacing: .9px;
+  text-align: center;
+}
+.home-nav .nav-btn span,
+.home-nav > button span { font-size: 17px; line-height: 1; }
+.home-nav .nav-btn.on,
+.home-nav > button.on {
+  background: #17518fcc !important;
+  box-shadow: inset 0 0 0 2px #6cc4ff55 !important;
+  color: #eaf5ff !important;
+}
+.home-nav > button:active { transform: translateY(2px); }
+
+/* The version stamp is reference material, not furniture: park it in the
+   corner so it costs the layout no vertical space at all. */
+/* The version stamp is reference material, not furniture. Ordering it between
+   the last card and the nav bar lets it absorb the leftover space, so it costs
+   the layout nothing and never lands on top of a tab. */
+.home .intro-version {
+  order: 1;
+  grid-column: auto;
+  margin: auto 0 2px !important;
+  padding-right: 4px;
+  text-align: right;
+  color: #ffffff40;
+  font: 700 9px/1 system-ui, sans-serif;
+  letter-spacing: 1.2px;
+}
+
+/* --------------------------------------------------------- short screens */
+
+@media (max-height: 720px) {
+  .chest-slots { display: none; }
+  .stage-copy { display: none; }
+  .rail-btn { width: 44px; height: 44px; min-height: 44px !important; font-size: 17px; }
+}
+@media (max-height: 600px) {
+  .season, .mode-tags { display: none; }
+}
+@media (min-width: 900px) {
+  #intro.modal section.home {
+    width: min(96vw, 560px);
+    height: min(96vh, 980px);
+    border-radius: 26px;
+    box-shadow: 0 30px 90px #000b;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   art-direction.css styles the old title card with ID-level `!important` rules
+   — a 132px headline, grid-column placements, a 76px minimum on every button,
+   an ordered version badge. Those are right for the card they were written for
+   and wrong for this screen, so they are neutralised here at matching
+   specificity rather than edited there, which would change every other sector.
+   --------------------------------------------------------------------------- */
+
+#intro.modal section.home h1.stage-title {
+  grid-column: auto !important;
+  margin: 0 !important;
+  font-size: clamp(19px, 5.4vw, 29px) !important;
+  letter-spacing: .2px !important;
+  text-shadow: 0 3px 0 #0b2a55, 0 0 18px #4aa8ff55 !important;
+}
+#intro.modal section.home .eyebrow {
+  grid-column: auto !important;
+  margin: 0 0 3px !important;
+  font-size: 10px !important;
+  letter-spacing: 2.4px !important;
+  color: #8fd0ff !important;
+}
+#intro.modal section.home p.stage-copy {
+  grid-column: auto !important;
+  max-width: 30ch !important;
+}
+#intro.modal section.home .intro-version {
+  grid-column: auto !important;
+  order: 1 !important;
+  text-align: right !important;
+  margin: auto 0 2px !important;
+}
+#intro.modal section.home button,
+#intro.modal section.home .rail-btn,
+#intro.modal section.home .nav-btn {
+  grid-column: auto !important;
+}
+#intro.modal section.home #play {
+  overflow: visible !important;
+  min-height: 66px !important;
+  font-size: clamp(19px, 5.2vw, 26px) !important;
+  background: linear-gradient(180deg, #ffe14a, #f0a51c) !important;
+  border-color: #fff6c0 !important;
+  color: #4a2c00 !important;
+  box-shadow: inset 0 0 0 3px #fff6c0, 0 6px 0 #a86a00, 0 10px 22px #00000055 !important;
+}
+#intro.modal section.home #campaignMapButton,
+#intro.modal section.home #warRoomButton {
+  min-height: 66px !important;
+  font-size: 11px !important;
+  background: linear-gradient(180deg, #2a6fc4, #14407f) !important;
+  border-color: #4d86c9 !important;
+}
+/* campaign.css pins #campaignButton to the bottom of whatever box contains it
+   (it was a floating badge on the old card). In the nav bar it is a tab. */
+#intro.modal section.home #campaignButton {
+  position: static !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  min-height: 48px !important;
+  padding: 6px 4px !important;
+  font-size: 9px !important;
+}
+#intro.modal section.home .home-nav > button {
+  min-height: 48px !important;
+  border-radius: 12px !important;
+  font-size: 9px !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+#intro.modal section.home .home-nav > button.on {
+  background: #17518fcc !important;
+  box-shadow: inset 0 0 0 2px #6cc4ff55 !important;
+}
+#intro.modal section.home #specialOpsButton,
+#intro.modal section.home #finalAssaultButton,
+#intro.modal section.home #endlessButton,
+#intro.modal section.home #prestigeButton {
+  min-height: 48px !important;
+  font-size: 9px !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #9fc7ee !important;
+}
+#intro.modal section.home #campaignButton.on,
+#intro.modal section.home #specialOpsButton.on,
+#intro.modal section.home #finalAssaultButton.on,
+#intro.modal section.home #endlessButton.on,
+#intro.modal section.home #prestigeButton.on {
+  background: #17518f !important;
+  box-shadow: inset 0 0 0 2px #6cc4ff66 !important;
+  color: #eaf5ff !important;
+}
+/* art-direction.css draws a hairline under every intro button; in a flat nav
+   bar that reads as an underline on each tab. */
+#intro.modal section.home .home-nav > button:after { display: none; }

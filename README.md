@@ -81,11 +81,16 @@ campaign's tuned wave curve is not moved by the new roster.
 
 ## The 3D battlefield
 
-The battlefield renders as a real 3D isometric scene, with a camera the player
-can orbit a full circle by dragging, pinch or wheel to zoom, and a one-tap
-reset. Towers, turrets, enemies and the command core are glTF models — the same
-procedural Blender geometry the sprites are rendered from, exported as `.glb`
-rather than rendered to PNG, so the two looks are the same art.
+The battlefield renders as a real 3D isometric scene. Towers, turrets, enemies,
+the command core and the environment are glTF models — the same procedural
+Blender geometry the sprites are rendered from, exported as `.glb` rather than
+rendered to PNG, so the two looks are the same art.
+
+**The camera is fixed.** An earlier version let the player drag to orbit it, and
+it did not earn its place: turning the map put the battlefield at angles where
+it framed badly on a phone, and every drag had to be told apart from a tap,
+which made ordinary taps feel unreliable. A tower defence wants one good angle it
+can be read at.
 
 It is a hybrid rather than a rewrite, and deliberately so. The campaign's six
 runtimes are all 2D: they hold entity positions in a flat 720×1120 world and
@@ -114,6 +119,48 @@ CDN, so the game stays playable offline with no build step. Its modules are
 patched to import each other by relative path: as published they import from the
 bare specifier `three`, which a browser cannot resolve, and a test now asserts
 none of them do.
+
+### The environment
+
+The ground is real geometry, not a textured plane: a displaced terrain mesh
+whose relief is flattened along the route and around every build pad at load
+time, so units walk on level ground and towers sit square while the dunes start
+just off the verge. The stage cannot do that flattening itself — it does not
+know where the road runs — so the game supplies the falloff, blended with a
+cubic smoothstep because a linear ramp leaves a visible crease along the
+roadside.
+
+Around it is desert: boulders, rock spires, scrub, cacti and ruins, seeded per
+sector so a map looks the same every time it is played, placed clear of the
+route, the pads and the core, and standing on the surrounding ground's own
+height rather than hovering over it. Distance haze takes the far desert into
+dusk, starting well beyond the battlefield's far corner — fog that dims the map
+is a readability bug, not atmosphere.
+
+The rock is deliberately dark. These are linear values under a strong key light,
+so they land far brighter on screen than they look in the source: the first pass
+used values around 0.5 and the scenery came out pale cream against orange sand,
+reading as polystyrene.
+
+### Firing effects
+
+Combat is staged in three dimensions rather than painted on the ground. Muzzle
+flashes sit at the barrel and throw sparks forward in a cone; tracers stretch
+along their direction of travel; mortar shells arc, rising out of the barrel and
+coming down on the target; flak bursts go off at the altitude they caught the
+flier at; rail lances and arc chains draw as beams at barrel height. The heavy
+families also throw a real point light, which is the one thing a billboard
+cannot fake — kept to four pooled lights, because a wall of towers firing would
+otherwise put dozens on screen at once.
+
+Everything is pooled and pre-allocated, and each sprite owns exactly one
+material for its lifetime. The first version cloned a material per particle at
+spawn time, which for a tower defence is a few hundred new materials a second,
+none of them ever freed.
+
+The 2D effects layer still owns what belongs on the terrain — floating damage
+numbers, scorch rings — and is told to stand down on the moments the 3D stage
+re-stages, so a flash is not painted twice.
 
 **It degrades.** Without WebGL, without the models, or if anything in the stage
 throws, the 3D canvas is removed and the untouched 2D game is still there. A
@@ -227,7 +274,7 @@ with and without the change and comparing pixel hashes.
 
 ## Tests
 
-`npm test` — 96 deterministic tests covering pad placement against the route, the
+`npm test` — 100 deterministic tests covering pad placement against the route, the
 difficulty ramp, wave readability, upgrade pricing, refunds, armour and pierce, tower
 role separation, targeting modes, path interpolation, save migration, 250-enemy spatial
 indexing and duplicate-loop prevention, plus scripted-player runs asserting that a
@@ -252,7 +299,7 @@ modifiers.
 Driven in headless Chromium at 430×932 (phone) and 1440×900 (desktop), against a local
 static server.
 
-- `npm test`: 96/96 passing.
+- `npm test`: 100/100 passing.
 - All six sectors and endless mode boot clean, load all 46 sprites, and play with towers
   built. Sectors 01–05 take the full themed treatment; 06 takes everything but its
   background, which it paints inline.
@@ -331,12 +378,9 @@ static server.
 
 - **Tap round-trip**: a build pad's world position projected to the screen
   through the 3D camera, tapped there, and checked against the pad the game
-  actually selected — 18 of 18 across six camera angles from 0 to 3.6 radians of
-  azimuth and 0.4 to 1.2 of elevation. This is the check that matters: if the
-  input mapping were wrong, every tap would land on the wrong pad the moment the
-  camera moved.
-- **Orbit**: dragging turns the camera past a full half circle and keeps going —
-  257° reached in the probe — with the whole map framed at every angle.
+  actually selected — 18 of 18 across six camera angles while the camera could
+  still be orbited, and 5 of 5 again once it was fixed.
+- **Taps with the camera fixed**: 5 of 5, re-checked after the orbit was removed.
 - All six sectors install the stage and render real meshes with no console
   errors (101–140 draw calls per sector after merging).
 - The 2D fallback round-trips: 3D by default, the corner control drops to the

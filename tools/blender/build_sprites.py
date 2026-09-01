@@ -37,12 +37,21 @@ ORTHO = 3.1
 MANIFEST = {"orthoScale": ORTHO, "parts": {}}
 MODELS = {}
 
-# A --only run renders a subset, so start from the manifest already on disk:
-# otherwise writing it back would drop every part this run did not touch.
+# A --only run builds a subset, so start from whatever is already on disk:
+# otherwise writing the manifest back would drop every part this run did not
+# touch. Both manifests need this - the model one was missed the first time,
+# and a --only pass over the environment models quietly reduced models.json to
+# five entries, which the test suite caught only because it checks that every
+# tower and enemy the game references actually has a model listed.
 if ONLY:
     try:
         with open(os.path.join(OUT, "manifest.json")) as _f:
             MANIFEST["parts"] = json.load(_f).get("parts", {})
+    except (OSError, ValueError):
+        pass
+    try:
+        with open(os.path.join(OUT, "models.json")) as _f:
+            MODELS = json.load(_f).get("models", {})
     except (OSError, ValueError):
         pass
 
@@ -970,6 +979,152 @@ def prop_sandbags():
             bpy.context.object.scale = (1.0, 0.62, 0.55)
 
 
+# --------------------------------------------------------------- environment
+#
+# These exist only for the 3D stage, which is why they are exported and never
+# rendered: the 2D game paints its own ground. They are modelled at a larger
+# scale than the props above because they are meant to be seen from the side.
+
+
+def env_terrain():
+    """The battlefield's ground, as real geometry.
+
+    A subdivided plane pushed around by layered noise. The stage flattens the
+    vertices near the route at runtime - it is the only thing that knows where
+    the road goes - so the displacement here is deliberately gentle: dunes and
+    swells rather than hills, because anything taller would swallow a tower.
+
+    Modelled 2 x 2 units and scaled by the stage, so one mesh serves every
+    sector and the noise does not stretch differently on different maps."""
+    ground = mat("ground", (0.62, 0.42, 0.24), 0.0, 0.95)
+    # Resolution is a budget, not a taste: a 140x200 grid exported at 1.3MB,
+    # which is more than every tower model put together for ground nobody
+    # looks at closely. This is roughly 8 world pixels per cell, fine enough
+    # that the runtime flattening along the route has a clean edge.
+    bpy.ops.mesh.primitive_grid_add(x_subdivisions=92, y_subdivisions=140, size=2.0)
+    o = bpy.context.object
+
+    # Layered value noise, sampled per vertex. Deterministic: the same mesh
+    # comes back on every build rather than a new landscape each time.
+    def h(x, y):
+        n = 0.0
+        for freq, amp, phase in ((1.7, 0.055, 0.0), (3.3, 0.026, 1.7), (7.1, 0.011, 4.2)):
+            n += math.sin(x * freq + phase) * math.cos(y * freq * 0.87 + phase * 1.3) * amp
+        # A long swell across the map keeps it from reading as uniform ripple.
+        n += math.sin(x * 0.6 + 0.4) * 0.045 + math.cos(y * 0.45) * 0.035
+        return n
+
+    for v in o.data.vertices:
+        v.co.z += h(v.co.x, v.co.y)
+
+    bpy.ops.object.shade_smooth()
+    return finish(o, ground, 0)
+
+
+# Desert rock, not beach pebble.
+#
+# These are linear values under a 2.1-strength key light, so they land far
+# brighter on screen than they look here: the first pass used numbers around
+# 0.5 and the scenery came out pale cream against orange sand, reading as
+# polystyrene. Halving them again put the rock where brown rock belongs.
+ROCK_DARK = (0.085, 0.055, 0.038)
+ROCK_MID = (0.135, 0.088, 0.058)
+ROCK_LIT = (0.195, 0.130, 0.082)
+
+
+def env_boulder():
+    """A rock big enough to read from the side, unlike the flat prop_rock.
+
+    Built from overlapping squashed spheres at different angles rather than one
+    ball: a sphere from any camera is a circle, and a circle on sand reads as a
+    bubble."""
+    stone = mat("s", ROCK_MID, 0.0, 0.95)
+    dark = mat("d", ROCK_DARK, 0.0, 0.96)
+    lit = mat("l", ROCK_LIT, 0.0, 0.92)
+    for r, loc, scale, m in (
+        (0.62, (0, 0, 0.40), (1.0, 0.84, 0.66), stone),
+        (0.40, (0.34, 0.20, 0.30), (0.9, 1.0, 0.8), lit),
+        (0.32, (-0.36, -0.24, 0.24), (1.1, 0.8, 0.7), dark),
+        (0.24, (0.10, -0.38, 0.20), (1.0, 0.9, 0.6), stone),
+    ):
+        ball(r, loc, material=m, segments=12)
+        bpy.context.object.scale = scale
+    # A flat wedge shelf breaks the round outline where it meets the ground.
+    box((0.86, 0.6, 0.18), (0.06, 0.04, 0.09), (0, math.radians(5), math.radians(24)),
+        material=dark, bevel=0.04)
+
+
+def env_spire():
+    """A weathered rock pillar. Vertical scenery is what sells a 3D ground:
+    everything else on the battlefield is low and wide.
+
+    Stacked, offset, tilted blocks rather than a cone - the first version was a
+    smooth cone and looked exactly like a traffic cone standing in the desert."""
+    stone = mat("s", ROCK_MID, 0.0, 0.95)
+    dark = mat("d", ROCK_DARK, 0.0, 0.96)
+    lit = mat("l", ROCK_LIT, 0.0, 0.92)
+    layers = (
+        (0.86, 0.44, 0.00, 0.00, 0.00, dark),
+        (0.72, 0.42, 0.05, -0.03, 0.10, stone),
+        (0.58, 0.40, -0.04, 0.06, -0.14, lit),
+        (0.44, 0.34, 0.08, 0.02, 0.22, stone),
+        (0.30, 0.30, -0.02, -0.05, -0.10, dark),
+    )
+    z = 0.0
+    for width, height, dx, dy, spin, m in layers:
+        cyl(width * 0.5, height, (dx, dy, z + height / 2), rot=(0, 0, spin),
+            verts=7, material=m, bevel=0.03, smooth=False)
+        z += height * 0.86
+    ball(0.15, (0.02, -0.02, z + 0.06), material=lit, segments=10)
+    for dx, dy, r in ((0.42, 0.14, 0.20), (-0.36, 0.26, 0.16), (0.10, -0.40, 0.14)):
+        ball(r, (dx, dy, r * 0.7), material=dark, segments=9)
+        bpy.context.object.scale = (1.2, 1.0, 0.7)
+
+
+def env_scrub():
+    """Low desert brush. Small, but a dozen of them break up bare ground."""
+    leaf = mat("l", (0.095, 0.115, 0.048), 0.0, 0.94)
+    dry = mat("d", (0.145, 0.120, 0.062), 0.0, 0.95)
+    for i in range(9):
+        a = math.radians(i * 40 + 12)
+        lean = math.radians(52)
+        cyl(0.022, 0.46, (math.cos(a) * 0.1, math.sin(a) * 0.1, 0.22),
+            rot=(math.cos(a) * lean, math.sin(a) * lean, 0),
+            material=dry if i % 3 else leaf, verts=6, bevel=0)
+
+
+def env_cactus():
+    """One tall silhouette per handful of scrub, so the desert has a skyline."""
+    flesh = mat("f", (0.062, 0.120, 0.066), 0.0, 0.9)
+    cyl(0.19, 1.35, (0, 0, 0.67), material=flesh, verts=10, bevel=0.04)
+    ball(0.185, (0, 0, 1.34), material=flesh, segments=12)
+    for side, z, reach in ((1, 0.72, 0.42), (-1, 0.95, 0.34)):
+        cyl(0.10, reach, (side * reach / 2, 0, z), rot=(0, math.radians(90), 0),
+            material=flesh, verts=8, bevel=0.03)
+        cyl(0.10, 0.42, (side * reach, 0, z + 0.21), material=flesh, verts=8, bevel=0.03)
+        ball(0.10, (side * reach, 0, z + 0.42), material=flesh, segments=10)
+
+
+def env_ruin():
+    """A broken wall. Reads as somewhere that was fought over before."""
+    stone = mat("s", (0.155, 0.135, 0.110), 0.0, 0.94)
+    dark = mat("d", (0.095, 0.082, 0.068), 0.0, 0.95)
+    for i, (w, h, x) in enumerate(((0.9, 0.86, -0.6), (0.9, 1.15, 0.3), (0.5, 0.55, 1.1))):
+        box((w, 0.34, h), (x, 0, h / 2), (0, math.radians(-2 + i * 2), 0),
+            material=stone if i % 2 else dark, bevel=0.03)
+    box((0.7, 0.4, 0.22), (-1.25, 0.1, 0.11), (0, 0, math.radians(24)), material=dark, bevel=0.03)
+
+
+ENVIRONMENT = {
+    "env_terrain": env_terrain,
+    "env_boulder": env_boulder,
+    "env_spire": env_spire,
+    "env_scrub": env_scrub,
+    "env_cactus": env_cactus,
+    "env_ruin": env_ruin,
+}
+
+
 WORLD = {
     "core": (command_core, 384, 3.1),
     "prop_rock": (prop_rock, 128, 1.5),
@@ -996,6 +1151,12 @@ def main():
 
     for name, (fn, res, ortho) in WORLD.items():
         build(name, res, fn, note="static", ortho=ortho)
+
+    # Environment geometry exists only for the 3D stage; the 2D game paints its
+    # own ground, so there is nothing to render these into.
+    if GLTF:
+        for name, fn in ENVIRONMENT.items():
+            build(name, 256, fn, note="3D stage only")
 
     if GLTF:
         with open(os.path.join(OUT, "models.json"), "w") as f:

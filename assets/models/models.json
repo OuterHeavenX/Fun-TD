@@ -116,6 +116,30 @@
       "file": "enemy_warden.glb",
       "ortho": 2.0
     },
+    "env_boulder": {
+      "file": "env_boulder.glb",
+      "ortho": 3.1
+    },
+    "env_cactus": {
+      "file": "env_cactus.glb",
+      "ortho": 3.1
+    },
+    "env_ruin": {
+      "file": "env_ruin.glb",
+      "ortho": 3.1
+    },
+    "env_scrub": {
+      "file": "env_scrub.glb",
+      "ortho": 3.1
+    },
+    "env_spire": {
+      "file": "env_spire.glb",
+      "ortho": 3.1
+    },
+    "env_terrain": {
+      "file": "env_terrain.glb",
+      "ortho": 3.1
+    },
     "flak_base_l1": {
       "file": "flak_base_l1.glb",
       "ortho": 3.1

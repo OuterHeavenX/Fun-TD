@@ -11,6 +11,7 @@
  * here throws, everything is torn down and the untouched 2D game remains.
  */
 import { createStage } from './stage3d.js';
+import { createEffects } from './stage3d-fx.js';
 
 const SETTING = 'funTD_view3d';
 
@@ -180,8 +181,116 @@ export async function install() {
     }
   }
 
-  /* The command core is a fixture rather than an entity, so it is placed once. */
+  /* -------------------------------------------------------- environment */
+
   const MAP = (window.FUN_TD_SECTOR_MODEL || window.FUN_TD_MODEL || {}).MAP;
+
+  /* Distance from a point to the route, which is the one thing the terrain
+     needs to know and the stage cannot: it decides where the ground is allowed
+     to have relief. */
+  function distanceToPath(x, y, path) {
+    let best = Infinity;
+    for (let i = 1; i < path.length; i++) {
+      const [ax, ay] = path[i - 1], [bx, by] = path[i];
+      const dx = bx - ax, dy = by - ay;
+      const len2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2));
+      const d = Math.hypot(x - (ax + dx * t), y - (ay + dy * t));
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  /* How much of the terrain's height survives at this point. Flat over the road
+     and the pads, easing back to full relief beyond them, so units walk on
+     level ground and towers sit square while the dunes start just off the
+     verge. Cubic smoothstep rather than a linear ramp: a straight blend leaves
+     a visible crease along the roadside. */
+  function relief(path, pads) {
+    const ROAD = 46, VERGE = 120, PAD = 52, PAD_VERGE = 46;
+    return (x, y) => {
+      let d = distanceToPath(x, y, path);
+      for (const pad of pads) {
+        const pd = Math.hypot(x - pad.x, y - pad.y) - (PAD - ROAD);
+        if (pd < d) d = pd;
+      }
+      if (d <= ROAD) return 0;
+      const t = Math.min(1, (d - ROAD) / VERGE);
+      return t * t * (3 - 2 * t);
+    };
+  }
+
+  /* Scenery, placed where it cannot get in the way: clear of the route, clear
+     of every build pad, and clear of the core. Seeded so a sector looks the
+     same every time it is played rather than rearranging itself. */
+  function scatterEnvironment(path, pads, base) {
+    let seed = 0x5f3a * (window.FUN_TD_SECTOR || 1) + path.length;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const kinds = ['env_boulder', 'env_boulder', 'env_scrub', 'env_scrub',
+                   'env_spire', 'env_cactus', 'env_ruin'];
+    const spots = [];
+
+    // On the battlefield itself, where scenery has to keep out of the way.
+    for (let tries = 0; tries < 500 && spots.length < 26; tries++) {
+      const x = rand() * stage.WORLD_W;
+      const y = rand() * stage.WORLD_H;
+      if (distanceToPath(x, y, path) < 96) continue;
+      if (base && Math.hypot(x - base.x, y - base.y) < 130) continue;
+      if (pads.some(p => Math.hypot(x - p.x, y - p.y) < 96)) continue;
+      if (spots.some(s => Math.hypot(x - s.x, y - s.y) < 88)) continue;
+      spots.push({ x, y, kind: kinds[Math.floor(rand() * kinds.length)], r: rand() });
+    }
+
+    // And out in the surrounding desert, which has no rules to respect: this is
+    // what turns the land around the map from an empty sheet into somewhere the
+    // battlefield happens to be. Bigger and sparser, since it is only ever seen
+    // at a distance.
+    const outer = [];
+    for (let tries = 0; tries < 1600 && outer.length < 120; tries++) {
+      const x = (rand() * 4.6 - 1.8) * stage.WORLD_W;
+      const y = (rand() * 3.4 - 1.2) * stage.WORLD_H;
+      const insideMap = x > -70 && x < stage.WORLD_W + 70 &&
+                        y > -70 && y < stage.WORLD_H + 70;
+      if (insideMap) continue;
+      if (outer.some(s => Math.hypot(x - s.x, y - s.y) < 150)) continue;
+      outer.push({ x, y, kind: kinds[Math.floor(rand() * kinds.length)], r: rand(), far: true });
+    }
+    spots.push(...outer);
+
+    for (const spot of spots) {
+      stage.loadModel(spot.kind).then(model => {
+        if (!model) return;
+        const node = model.clone(true);
+        // Scenery is scaled off the tower unit so a boulder reads as rock-sized
+        // next to a gun platform rather than as a pebble or a mountain.
+        const size = spot.kind === 'env_scrub' ? 26 : spot.kind === 'env_spire' ? 40 : 34;
+        node.scale.setScalar(size * (0.75 + spot.r * 0.6) * (spot.far ? 1.35 : 1));
+        // Out in the surrounding desert the ground has its own height, so stand
+        // on it. A couple of pixels below, to bed the base into the sand.
+        const y = spot.far ? stage.surroundHeight(spot.x, spot.y) - 3 : 0;
+        node.position.set(stage.wx(spot.x), y, stage.wz(spot.y));
+        node.rotation.y = spot.r * Math.PI * 2;
+        scene.add(node);
+      });
+    }
+  }
+
+  if (MAP && Array.isArray(MAP.path)) {
+    const pads = (game.pads || []).map(p => ({ x: p.x, y: p.y }));
+    stage.loadModel('env_terrain').then(terrain => {
+      if (!terrain) return;
+      // The loader collapses a model to meshes by material; terrain is one.
+      let mesh = null;
+      terrain.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
+      stage.useTerrain(mesh, relief(MAP.path, pads));
+    });
+    scatterEnvironment(MAP.path, pads, MAP.base);
+  }
+
+  /* The command core is a fixture rather than an entity, so it is placed once. */
   if (MAP && MAP.base) {
     stage.loadModel('core').then(core => {
       if (!core) return;
@@ -191,85 +300,22 @@ export async function install() {
     });
   }
 
-  /* ------------------------------------------------------------- camera */
+  /* -------------------------------------------------------------- input */
 
-  const surface = stage.canvas;
-  const HOME = { azimuth: stage.azimuth, elevation: stage.elevation, zoom: 1 };
+  /* The camera is fixed. An earlier version let the player drag to orbit it,
+     and it did not earn its place: turning the map put the battlefield at
+     angles where it framed badly on a phone, and every drag had to be told
+     apart from a tap, which made ordinary taps feel unreliable. A tower
+     defence wants one good angle it can be read at, so this is that angle,
+     and a tap is just a tap again. */
+  stage.canvas.addEventListener('pointerdown', e => { e.preventDefault(); game.tap(e); });
 
-  /* One finger orbits, two pinch to zoom, and a tap is still a tap. Tracking
-     every active pointer rather than just the first is what lets those three
-     coexist without a second finger being read as a wild drag. */
-  const pointers = new Map();
-  let moved = 0, pinchStart = 0, zoomStart = 1;
-
-  const spread = () => {
-    const [a, b] = [...pointers.values()];
-    return Math.hypot(a.x - b.x, a.y - b.y);
-  };
-
-  surface.addEventListener('pointerdown', e => {
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.size === 1) moved = 0;
-    if (pointers.size === 2) { pinchStart = spread(); zoomStart = stage.zoom; }
-    try { surface.setPointerCapture(e.pointerId); } catch (err) {}
-  });
-
-  surface.addEventListener('pointermove', e => {
-    const prev = pointers.get(e.pointerId);
-    if (!prev) return;
-    const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
-    prev.x = e.clientX; prev.y = e.clientY;
-
-    if (pointers.size >= 2) {
-      if (pinchStart > 0) stage.zoom = zoomStart * (spread() / pinchStart);
-      moved += 99;                   // a pinch is never a tap
-      return;
-    }
-    moved += Math.abs(dx) + Math.abs(dy);
-    stage.azimuth = stage.azimuth - dx * 0.008;
-    stage.elevation = stage.elevation + dy * 0.005;
-  });
-
-  const release = e => {
-    if (!pointers.has(e.pointerId)) return;
-    const last = pointers.size;
-    pointers.delete(e.pointerId);
-    try { surface.releasePointerCapture(e.pointerId); } catch (err) {}
-    if (last !== 1) { pinchStart = 0; return; }
-    // A drag turns the camera; only a tap is a tap. The threshold keeps a
-    // slightly shaky finger from being read as an orbit.
-    if (moved < 9) game.tap(e);
-  };
-  surface.addEventListener('pointerup', release);
-  surface.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); pinchStart = 0; });
-
-  surface.addEventListener('wheel', e => {
-    e.preventDefault();
-    stage.zoom = stage.zoom * (e.deltaY > 0 ? 0.92 : 1.08);
-  }, { passive: false });
-
-  /* A way back. Orbiting is a toy until there is a one-tap route to a known
-     good angle, because a player who has spun the camera somewhere unhelpful
-     mid-wave needs out immediately, not a careful drag back. */
-  function addCameraButton() {
+  /* A way out. The 3D stage is the default, but a player on weak hardware,
+     or one who simply prefers the flat plan view, should not have to clear
+     site data to get it back. */
+  function addViewButton() {
     const host = document.getElementById('cornerControls');
-    if (!host || document.getElementById('cameraReset')) return;
-    const btn = document.createElement('button');
-    btn.id = 'cameraReset';
-    btn.type = 'button';
-    btn.title = 'Reset the camera';
-    btn.setAttribute('aria-label', 'Reset the camera');
-    btn.textContent = '\u2941';
-    btn.onclick = () => {
-      stage.zoom = HOME.zoom;
-      stage.elevation = HOME.elevation;
-      stage.azimuth = HOME.azimuth;
-    };
-    host.insertBefore(btn, host.firstChild);
-
-    // A way out. The 3D stage is the default, but a player on weak hardware,
-    // or one who simply prefers the flat plan view, should not have to clear
-    // site data to get it back.
+    if (!host || document.getElementById('view2d')) return;
     const flat = document.createElement('button');
     flat.id = 'view2d';
     flat.type = 'button';
@@ -277,11 +323,11 @@ export async function install() {
     flat.setAttribute('aria-label', 'Switch to the flat 2D battlefield');
     flat.textContent = '2D';
     flat.onclick = () => { setEnabled(false); location.reload(); };
-    host.insertBefore(flat, btn.nextSibling);
+    host.insertBefore(flat, host.firstChild);
   }
-  addCameraButton();
+  addViewButton();
 
-  /* --------------------------------------------------------------- input */
+  /* -------------------------------------------------------- world mapping */
 
   /* Every sector converts a pointer event to world coordinates in one place,
      which is the only reason a rotated camera can be dropped under a 2D game
@@ -311,6 +357,50 @@ export async function install() {
   game.drawHealthBar = noop;
   if (typeof game.drawBase === 'function') game.drawBase = noop;
 
+  /* ------------------------------------------------------------- effects */
+
+  const fx = createEffects(stage);
+
+  /* The combat moments, re-staged in three dimensions.
+   *
+   * The 2D effects layer already wraps these and paints into the world canvas,
+   * which on this stage means a muzzle flash ends up lying flat on the sand
+   * under the tower. Wrapping them again here puts the flash at the barrel and
+   * the burst where the shell landed; the 2D versions are then told to stand
+   * down, since they would otherwise scorch the ground for every shot. */
+  const wrap = (name, before) => {
+    const original = game[name];
+    if (typeof original !== 'function') return;
+    game[name] = function (...args) {
+      try { before.apply(this, args); } catch (e) { /* effects never break combat */ }
+      return original.apply(this, args);
+    };
+  };
+
+  wrap('fire', function (tower) { if (tower) fx.onFire(tower); });
+  wrap('hit', function (p) {
+    if (!p) return;
+    const kind = p.type || (p.s && p.s.type);
+    const splash = p.splash || (p.s && p.s.splash) || 0;
+    // A flak burst goes off at the altitude it caught the flier at.
+    const airborne = p.splashAir || (p.target && p.target.flying)
+      ? ((p.target && p.target.altitude) || 34) : 0;
+    fx.onHit(p.x, p.y, kind, splash, airborne);
+  });
+  wrap('kill', function (e) { if (e) fx.onKill(e); });
+
+  // The 2D layer's own flashes and bursts would double every one of these, flat
+  // on the ground. Its floating damage numbers and scorch rings still earn
+  // their place on the terrain, so only the airborne moments are silenced.
+  const FX2D = window.FUN_TD_EFFECTS;
+  if (FX2D && typeof FX2D.suppress === 'function') FX2D.suppress(['fire', 'hit', 'kill']);
+
+  // Projectiles fly in 3D now; the 2D renderer would draw a second copy of each
+  // one sliding along the sand.
+  game.drawProjectile = () => {};
+  if (typeof game.drawArc === 'function') game.drawArc = () => {};
+  if (typeof game.drawBeam === 'function') game.drawBeam = () => {};
+
   /* The wave banner and the combo counter are screen-space captions that the
      2D renderer happens to paint into the middle of the world canvas. On a
      ground plane they end up lying flat on the sand at whatever angle the
@@ -334,12 +424,17 @@ export async function install() {
                        document.visibilityState === 'hidden';
 
   let frames = 0;
+  let lastFrame = performance.now();
   function frame() {
     if (!stage.canvas.isConnected) return;
     if (hidden()) { requestAnimationFrame(frame); return; }
     try {
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - lastFrame) / 1000 || 0);
+      lastFrame = now;
       syncTowers();
       syncEnemies();
+      fx.update(dt, game);
       stage.groundTex.needsUpdate = true;
       stage.render();
     } catch (err) {

@@ -34,12 +34,22 @@ const UNIT = 46;
 
 const MODEL_DIR = 'assets/models/';
 
-/* Camera. A true isometric elevation with a free azimuth, which is the whole
-   point of the exercise: the player can walk the camera round the map to see
-   behind a tower. Orthographic rather than perspective so the battlefield keeps
-   the readable, flat-plan feel a tower defence needs. */
+/* How tall the terrain's dunes are, in world pixels, per unit of the model's
+   own displacement. The mesh is 2 units wide with roughly +/-0.1 of noise on
+   it, so this reads as about +/-19px of relief on a 720px map: enough to catch
+   the light and cast a shadow, not enough to hide anything. The first value
+   here was 34, which worked out to +/-3px - measurably there and visibly not. */
+const HEIGHT_SCALE = 190;
+
+/* Camera. Fixed, orthographic, at an isometric elevation.
+ *
+ * An earlier version let the player drag to orbit it. That is removed: turning
+ * the map put the battlefield at angles where it framed badly on a phone, and
+ * every drag had to be told apart from a tap, which made ordinary taps feel
+ * unreliable. The angle is still settable from here so the framing can be tuned
+ * and tested, but nothing in the game changes it at runtime. */
 const ELEVATION_MIN = 0.32;      // radians above the horizon
-const ELEVATION_MAX = 1.45;      // very nearly the old top-down view
+const ELEVATION_MAX = 1.45;      // very nearly a top-down view
 const ELEVATION_DEFAULT = 0.72;
 
 /* Facing straight down the map's long axis by default.
@@ -156,33 +166,141 @@ export function createStage(game, options = {}) {
   groundTex.minFilter = THREE.LinearFilter;
   groundTex.generateMipmaps = false;
 
+  /* The ground starts as a flat plane and is replaced by the displaced terrain
+     mesh once it loads, so the battlefield is playable before the environment
+     arrives and simply gets better when it does. */
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(WORLD_W, WORLD_H),
-    new THREE.MeshBasicMaterial({ map: groundTex })
+    // Lambert rather than Basic: the painted texture is already lit, but the
+    // ground now has real relief, and relief with no shading is just a
+    // wallpapered plane. A low-cost diffuse response is enough to show it.
+    new THREE.MeshLambertMaterial({ map: groundTex })
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = false;   // a basic material takes no shadow by design
+  ground.receiveShadow = true;
   scene.add(ground);
 
-  /* A shadow-only plane a hair above the ground, so tower and unit shadows
-     land on the painted terrain without dimming the artwork under them. */
-  const shadowCatcher = new THREE.Mesh(
-    new THREE.PlaneGeometry(WORLD_W * 1.6, WORLD_H * 1.6),
-    new THREE.ShadowMaterial({ opacity: 0.34 })
-  );
-  shadowCatcher.rotation.x = -Math.PI / 2;
-  shadowCatcher.position.y = 0.6;
-  shadowCatcher.receiveShadow = true;
-  scene.add(shadowCatcher);
+  /* Swap in real terrain.
+   *
+   * `flattenNear` is supplied by the caller because the stage does not know
+   * where the route runs and the game does. Everything within the road's width
+   * is pulled back to zero and blended out over a margin, so units walk on flat
+   * ground and the dunes start where the road ends. Without that the road would
+   * ripple and every unit would sink into it. */
+  function useTerrain(mesh, flattenNear) {
+    if (!mesh) return;
+    const geo = mesh.geometry ? mesh.geometry.clone() : null;
+    if (!geo) return;
+    // The model is 2x2 units in Blender's XY with height in Z, exported Y-up:
+    // so it arrives as a 2x2 plane in XZ, and scales straight onto the map.
+    geo.scale(WORLD_W / 2, HEIGHT_SCALE, WORLD_H / 2);
 
-  // A slab under the map so the battlefield reads as a solid object with sides
-  // rather than a floating decal once the camera drops toward the horizon.
-  const slab = new THREE.Mesh(
-    new THREE.BoxGeometry(WORLD_W, 90, WORLD_H),
-    new THREE.MeshStandardMaterial({ color: 0x2b3444, roughness: 0.9, metalness: 0.05 })
+    const pos = geo.attributes.position;
+    if (flattenNear) {
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i) + WORLD_W / 2;
+        const z = pos.getZ(i) + WORLD_H / 2;
+        pos.setY(i, pos.getY(i) * flattenNear(x, z));
+      }
+      pos.needsUpdate = true;
+    }
+    geo.computeVertexNormals();
+
+    // Planar UVs so the painted map lands on the terrain exactly as it did on
+    // the plane: same road, same pads, now with relief under them.
+    const uv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) {
+      uv[i * 2] = pos.getX(i) / WORLD_W + 0.5;
+      uv[i * 2 + 1] = 0.5 - pos.getZ(i) / WORLD_H;
+    }
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+
+    ground.geometry.dispose();
+    ground.geometry = geo;
+    ground.rotation.x = 0;          // the exported mesh is already in XZ
+    ground.position.y = 0;
+  }
+
+  /* The land the battlefield sits in.
+   *
+   * Before this the map was a slab hanging in a dark void, which read as a
+   * tabletop diorama - fine, but not what "a real place" looks like. The
+   * surrounding desert runs out to the horizon under the same light, so the
+   * playable area is a part of a landscape rather than an object on a stand.
+   * It carries no painted texture: it is not the map, and anything drawn on it
+   * would look like the map had leaked. */
+  /* Sized to reach a little past the frame rather than out to infinity. An
+     orthographic camera has no vanishing point, so a ground plane the size of a
+     county does not produce a horizon - it just fills every pixel with sand,
+     which is exactly what the first attempt did. Ending it just outside the
+     framing, and fogging the last of it into the sky, puts a horizon where the
+     camera can actually see one. */
+  /* The surrounding desert's height at a point, in map coordinates. Exported so
+     scenery placed out there can stand on the ground rather than hovering over
+     it or sinking into it - which it did, visibly, when this was inlined. */
+  function surroundHeight(mapX, mapY) {
+    const x = mapX - WORLD_W / 2, y = mapY - WORLD_H / 2;
+    const d = Math.max(Math.abs(x) / WORLD_W, Math.abs(y) / WORLD_H);
+    const swell = Math.sin(x * 0.0021) * 26 + Math.cos(y * 0.0016) * 22
+                + Math.sin((x + y) * 0.0009) * 34;
+    // Held at zero under the battlefield and for a little way past its edge, so
+    // the map is never undercut by the land it sits on.
+    return (swell - 26) * Math.min(1, Math.max(0, (d - 0.62) * 1.7));
+  }
+
+  const surroundGeo = new THREE.PlaneGeometry(WORLD_W * 5.0, WORLD_H * 3.6, 80, 80);
+  {
+    // The same kind of gentle swell the terrain has, so the horizon is not a
+    // ruler-straight line, and pushed down slightly at the map's edge so the
+    // playable ground sits a step above its surroundings.
+    const pos = surroundGeo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i);
+      pos.setZ(i, surroundHeight(x + WORLD_W / 2, y + WORLD_H / 2));
+    }
+    surroundGeo.computeVertexNormals();
+  }
+  const surround = new THREE.Mesh(
+    surroundGeo,
+    new THREE.MeshLambertMaterial({ color: 0xb07a45 })
   );
-  slab.position.y = -46;
-  scene.add(slab);
+  surround.rotation.x = -Math.PI / 2;
+  surround.position.y = -2;
+  surround.receiveShadow = true;
+  scene.add(surround);
+
+  /* A skydome. A flat background colour gives the horizon nothing to meet, so
+     the far desert just stops; a gradient dome gives it a sky to end against. */
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(WORLD_H * 6, 24, 16),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        top: { value: new THREE.Color(0x2a4a72) },
+        horizon: { value: new THREE.Color(0xc98f5a) },
+        ground: { value: new THREE.Color(0x2a1d14) }
+      },
+      vertexShader: `varying vec3 vP; void main(){ vP = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 ground;
+        varying vec3 vP;
+        void main(){
+          float h = normalize(vP).y;
+          vec3 c = h > 0.0 ? mix(horizon, top, pow(h, 0.55))
+                           : mix(horizon, ground, pow(-h, 0.5));
+          gl_FragColor = vec4(c, 1.0);
+        }`
+    })
+  );
+  scene.add(sky);
+
+  /* Distance haze. The near plane sits well beyond the battlefield's far corner
+     so the playable ground is never touched by it - fog that dims the map is a
+     readability bug, not atmosphere. Past that the surrounding desert falls
+     away into dusk, which is what stops the frame reading as one flat sheet of
+     orange, and gives the eye an edge to the world without a hard cut. */
+  scene.fog = new THREE.Fog(0x4a331f, 3500, 5400);
 
   /* -------------------------------------------------------------- models */
 
@@ -361,7 +479,8 @@ export function createStage(game, options = {}) {
 
   return {
     THREE, scene, camera, renderer, canvas, ground, groundTex, loadModel,
-    wx, wz, facing, scaleFor, UNIT, WORLD_W, WORLD_H, RADIUS,
+    wx, wz, facing, scaleFor, useTerrain, surroundHeight,
+    UNIT, WORLD_W, WORLD_H, RADIUS,
     get azimuth() { return azimuth; },
     set azimuth(v) { azimuth = v; fitCamera(); },
     get elevation() { return elevation; },

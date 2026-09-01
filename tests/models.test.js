@@ -67,6 +67,32 @@ test('models are small enough to ship', () => {
     `the model set is ${Math.round(total / 1024 / 1024)}MB`);
 });
 
+test('the environment models are present for the 3D stage', () => {
+  // These exist only for the 3D stage - the 2D game paints its own ground - so
+  // nothing else in the suite would notice them going missing.
+  for (const name of ['env_terrain', 'env_boulder', 'env_spire', 'env_scrub',
+                      'env_cactus', 'env_ruin']) {
+    assert.ok(manifest[name], `no manifest entry for ${name}`);
+    assert.ok(fs.existsSync(path.join(MODELS, name + '.glb')), `no file for ${name}`);
+  }
+});
+
+test('a partial export cannot truncate the model manifest', () => {
+  // A --only pass over the environment models once rewrote models.json down to
+  // five entries, silently removing every tower and enemy from it. The build
+  // script now reloads the manifest before adding to it; this asserts the
+  // manifest on disk still describes the whole set rather than a subset.
+  const towers = Object.keys(M.TOWERS).length * M.BAL.maxLevel * 2;
+  const enemies = Object.keys(M.ENEMIES).length;
+  assert.ok(Object.keys(manifest).length >= towers + enemies + 6,
+    `models.json lists only ${Object.keys(manifest).length} models`);
+
+  const build = fs.readFileSync(
+    path.join(ROOT, 'tools', 'blender', 'build_sprites.py'), 'utf8');
+  assert.match(build, /models\.json[\s\S]{0,220}MODELS = json\.load/,
+    'a partial build must reload models.json before writing it back');
+});
+
 test('the vendored three.js modules resolve without a bundler', () => {
   // Each of these imported from the bare specifier 'three' as published, which
   // a browser cannot resolve: the first run of the 3D stage died on exactly
@@ -86,6 +112,40 @@ test('the vendored three.js modules resolve without a bundler', () => {
 test('three.js is vendored with its licence', () => {
   assert.ok(fs.existsSync(path.join(VENDOR, 'LICENSE')));
   assert.ok(fs.existsSync(path.join(VENDOR, 'three.module.min.js')));
+});
+
+test('the camera is fixed, with no orbit left behind', () => {
+  // Removing the orbit means removing its input handling too: a stray pointer
+  // handler that still turns the camera would make taps unreliable again,
+  // which is the reason it went.
+  const install = fs.readFileSync(path.join(ROOT, 'src', 'art', 'stage3d-install.js'), 'utf8');
+  for (const gone of ['pinchStart', 'setPointerCapture', 'cameraReset']) {
+    assert.ok(!install.includes(gone), `${gone} is still wired up in the stage installer`);
+  }
+  assert.ok(!/stage\.azimuth\s*=/.test(install), 'something still drives the camera azimuth');
+  assert.ok(!/stage\.elevation\s*=/.test(install), 'something still drives the camera elevation');
+});
+
+test('the firing effects hand their moments over from the 2D layer', () => {
+  // Both layers wrap fire/hit/kill. If the 2D one is not told to stand down it
+  // paints a second, flat copy of every flash onto the sand.
+  const fx2d = fs.readFileSync(path.join(ROOT, 'src', 'art', 'effects.js'), 'utf8');
+  assert.match(fx2d, /FUN_TD_EFFECTS/, '2D effects must expose a way to hand moments over');
+  assert.match(fx2d, /suppress/, '2D effects must support suppression');
+
+  const install = fs.readFileSync(path.join(ROOT, 'src', 'art', 'stage3d-install.js'), 'utf8');
+  assert.match(install, /suppress\(\['fire', 'hit', 'kill'\]\)/,
+    'the 3D stage must suppress exactly the moments it re-stages');
+
+  const fx3d = fs.readFileSync(path.join(ROOT, 'src', 'art', 'stage3d-fx.js'), 'utf8');
+  // Every tower family needs its own shot, or they all fire the same yellow ball.
+  for (const type of Object.keys(M.TOWERS)) {
+    assert.match(fx3d, new RegExp(`\\b${type}:\\s*\\{`),
+      `no firing effect defined for the ${type} family`);
+  }
+  // Pools, not allocations: a per-shot material was a real leak here once.
+  assert.ok(!/clone\(\)/.test(fx3d.split('function spark')[1].split('}')[0] || ''),
+    'spark() must not clone a material per particle');
 });
 
 test('the 3D stage is loaded as a module and can be turned off', () => {

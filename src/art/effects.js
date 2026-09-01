@@ -221,6 +221,12 @@ function onLeak(baseX, baseY, damage) {
 
 /* ------------------------------------------------------------------ install */
 
+/* Moments the 3D stage has taken over. It re-stages flashes and bursts in three
+   dimensions, and this layer would otherwise paint a second, flat copy of each
+   one onto the sand. Floating numbers and ground rings are not in here: those
+   belong on the terrain and still earn their place. */
+const suppressed = new Set();
+
 function install(game, ctxKey) {
   const ctx = () => game[ctxKey];
   const crowded = () => (game.enemies || []).length > BUSY;
@@ -229,7 +235,9 @@ function install(game, ctxKey) {
     const original = game[name];
     if (typeof original !== 'function') return false;
     game[name] = function (...args) {
-      try { before.apply(this, args); } catch (e) { /* effects never break combat */ }
+      if (!suppressed.has(name)) {
+        try { before.apply(this, args); } catch (e) { /* effects never break combat */ }
+      }
       return original.apply(this, args);
     };
     return true;
@@ -320,4 +328,12 @@ const timer = setInterval(() => {
   if (!key) { console.warn('FUN TD fx: no 2D context found, effects disabled'); return; }
   try { install(game, key); } catch (err) { console.warn('FUN TD fx: install failed', err); }
 }, 90);
+
+window.FUN_TD_EFFECTS = {
+  /* Hand a moment over to another renderer. Called by the 3D stage, which
+     installs after this does; suppressing rather than unwrapping keeps the
+     chain intact so the game's own method still runs. */
+  suppress(names) { for (const n of names || []) suppressed.add(n); },
+  restore(names) { for (const n of names || []) suppressed.delete(n); }
+};
 })();

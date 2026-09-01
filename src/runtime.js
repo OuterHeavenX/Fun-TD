@@ -1217,11 +1217,12 @@ class Game {
      spawn point — otherwise calling for help would be a reward, not a threat. */
   escort(type, parent) {
     const e = new Enemy(type, this.waveIndex);
-    e.x = parent.x; e.y = parent.y;
-    if (e.flying) {
-      e.flightLength = Math.hypot(MAP.base.x - e.x, MAP.base.y - e.y);
-      e.angle = Math.atan2(MAP.base.y - e.y, MAP.base.x - e.x);
-    } else {
+    // A walking escort falls in beside the boss. A flying one comes in from
+    // the spawn point and has to cross the map: air already ignores the route,
+    // and dropping a flight on top of the core is not a phase change, it is an
+    // unanswerable one.
+    if (!e.flying) {
+      e.x = parent.x; e.y = parent.y;
       e.segment = parent.segment;
       e.travelled = parent.travelled;
       e.angle = parent.angle;

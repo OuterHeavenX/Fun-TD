@@ -157,9 +157,18 @@ function airRaid(wave, ENEMIES, flier, waveIndex) {
   const groups = wave.groups || wave;
   if (!Array.isArray(groups) || !groups.length) return false;
   if (groups.some(g => ENEMIES[g.type] && ENEMIES[g.type].flying)) return false;
+  // Never rewrite a boss wave. It is the finale of a campaign that was already
+  // balanced around exactly what it contains, and a boss cannot pay its own
+  // share anyway - there is only ever one of it.
+  if (groups.some(g => ENEMIES[g.type] && ENEMIES[g.type].noScale)) return false;
 
-  const total = groups.reduce((n, g) => n + hpOf(ENEMIES, g.type) * g.count, 0);
-  let budget = total * AIR_SHARE;
+  // Size the raid against the health that can actually pay for it. Counting a
+  // boss's flat 6400 into the budget and then taking the whole bill out of the
+  // ground units strips the wave down to a flock, which is what turned sector
+  // 02's last wave from a 10 HP breach into a 73 HP one.
+  const payable = groups.reduce((n, g) =>
+    n + (ENEMIES[g.type] && ENEMIES[g.type].noScale ? 0 : hpOf(ENEMIES, g.type) * g.count), 0);
+  let budget = payable * AIR_SHARE;
 
   // Pay from the largest group first, and never empty one out — a wave should
   // still look like itself afterwards.
@@ -194,6 +203,7 @@ function addTanker(wave, ENEMIES) {
   const groups = wave.groups || wave;
   if (!Array.isArray(groups) || !groups.length) return false;
   if (groups.some(g => g.type === 'brute')) return false;
+  if (groups.some(g => ENEMIES[g.type] && ENEMIES[g.type].noScale)) return false;
   const unit = hpOf(ENEMIES, 'brute');
   const biggest = groups.reduce((best, g) =>
     hpOf(ENEMIES, g.type) * g.count > hpOf(ENEMIES, best.type) * best.count ? g : best, groups[0]);
@@ -207,17 +217,34 @@ function addTanker(wave, ENEMIES) {
 /* -------------------------------------------------------------- the boss */
 
 /* Two thresholds, each a real trade: faster, but with less armour. The second
-   calls in air, so anti-air has to still be standing at the end of the fight. */
+   calls in air, so anti-air has to still be standing at the end of the fight.
+ *
+ * These are deliberately gentler than sector 01's own phases. Sector 01 was
+ * tuned around them; here the boss arrives on the last wave of an already
+ * balanced campaign, and escorts appearing beside it - already most of the way
+ * down the road - is worth far more to the swarm than the same escorts would
+ * be at the spawn point. Measured on sector 02: the first draft's 1.30/1.65
+ * speed and 3+4 escorts turned a 10 HP breach into a 73 HP one.
+ *
+ * Armour is only set where the sector already had some; several of these
+ * runtimes have no armour system at all, and inventing a value for their boss
+ * would be a silent buff on any sector that later grows one. */
 function bossPhases(ENEMIES) {
   const boss = ENEMIES.boss;
   if (!boss || boss.phases) return;
-  const armour = boss.armor || 0.3;
-  boss.armor = armour;
+  const armour = boss.armor;
+  const shed = mul => (armour === undefined ? undefined : armour * mul);
+  // Lean on the escorts rather than on speed. Most of these runtimes have no
+  // armour system, so shedding armour is inert there and speed is the only
+  // lever left - and speed converts directly into leaked health, which is how
+  // sector 02's finale went from a 10 HP breach to a 40 HP one on a maxed
+  // line. A boss that calls in more help is a stronger boss; a boss that
+  // simply outruns the map is a worse one.
   boss.phases = [
-    { at: 0.66, name: 'PLATING SHED', speed: 1.3, armor: armour * 0.7,
+    { at: 0.66, name: 'PLATING SHED', speed: 1.06, armor: shed(0.7),
       escorts: ENEMIES.armored ? ['armored', 'armored', 'armored'] : ['grunt', 'grunt', 'grunt'] },
-    { at: 0.33, name: 'CORE EXPOSED', speed: 1.65, armor: armour * 0.38,
-      escorts: ['gunship', 'drone', 'drone', 'drone'] }
+    { at: 0.33, name: 'CORE EXPOSED', speed: 1.12, armor: shed(0.38),
+      escorts: ['gunship', 'drone', 'drone'] }
   ];
 }
 
@@ -232,9 +259,16 @@ function install(game, model) {
     if (!Enemy || !ENEMIES[type]) return;
     let e;
     try { e = new Enemy(type); } catch (err) { return; }
-    e.x = parent.x; e.y = parent.y;
-    if (e.flying) launch(e, MAP);
-    else {
+    // An escort that walks falls in beside the boss, where it is worth
+    // something. One that flies comes in from the spawn point and has to cross
+    // the map: air already ignores the route, and dropping a flight on top of
+    // the core is not a phase change, it is an unanswerable one.
+    if (e.flying) {
+      e.x = MAP.path[0][0];
+      e.y = MAP.path[0][1];
+      launch(e, MAP);
+    } else {
+      e.x = parent.x; e.y = parent.y;
       if ('segment' in parent) e.segment = parent.segment;
       if ('seg' in parent) e.seg = parent.seg;
       e.angle = parent.angle;

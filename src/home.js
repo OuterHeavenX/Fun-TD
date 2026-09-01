@@ -14,7 +14,7 @@ const num = key => { try { return +localStorage.getItem(key) || 0; } catch (e) {
 const flag = key => { try { return localStorage.getItem(key) === '1'; } catch (e) { return false; } };
 
 const SECTORS = [
-  { n: 1, name: 'Dustwall Defense',   copy: 'Four tower families. Twenty waves. One command core.' },
+  { n: 1, name: 'Dustwall Defense',   copy: 'Seven tower families. Ground and air. One command core.' },
   { n: 2, name: 'Frostline Pass',     copy: 'Hold the frozen pass. Break the swarm. Survive the storm.' },
   { n: 3, name: 'Ashfall Foundry',    copy: 'Hold the foundry. Break the splitters. Survive the heat.' },
   { n: 4, name: 'Black Tide Harbor',  copy: 'Hold the harbour. Chain the swarm. Survive the surge.' },

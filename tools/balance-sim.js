@@ -27,7 +27,7 @@ export function loadModel(source = fs.readFileSync(RUNTIME, 'utf8')) {
   vm.createContext(context);
   vm.runInContext(
     block + '\n;globalThis.__model={MAP,BAL,TOWERS,ENEMIES,WAVES,waveHpScale,waveRewardScale,' +
-    'countWave,enemyStats,damageAfterArmor,towerStats,upgradeCost,investedAt,dpsOf,' +
+    'countWave,enemyStats,damageAfterArmor,towerStats,upgradeCost,investedAt,dpsOf,canTarget,' +
     'waveIntel,waveEffectiveHp,waveSpawnSeconds,pathLength};',
     context
   );
@@ -51,10 +51,42 @@ function samplePath(step = 6) {
 }
 let SAMPLES = samplePath();
 
-function coverage(pad, range) {
+function coverage(pad, range, samples = SAMPLES) {
   let n = 0;
-  for (const [x, y] of SAMPLES) if (Math.hypot(x - pad.x, y - pad.y) <= range) n++;
-  return n / SAMPLES.length;
+  for (const [x, y] of samples) if (Math.hypot(x - pad.x, y - pad.y) <= range) n++;
+  return n / samples.length;
+}
+
+/* Fliers ignore the road, so a pad's usefulness against air has nothing to do
+   with path coverage: it is how much of the spawn-to-core corridor it sees. */
+function sampleAir(step = 6, lanes = 7) {
+  const pts = [];
+  const [sx, sy] = M.MAP.path[0];
+  const dx = M.MAP.base.x - sx, dy = M.MAP.base.y - sy;
+  const len = Math.hypot(dx, dy) || 1;
+  for (let l = 0; l < lanes; l++) {
+    const off = (l / (lanes - 1) * 2 - 1) * 70;
+    const ax = sx + -dy / len * off, ay = sy + dx / len * off;
+    const bx = M.MAP.base.x, by = M.MAP.base.y;
+    const d = Math.hypot(bx - ax, by - ay);
+    for (let t = 0; t < d; t += step) pts.push([ax + (bx - ax) * t / d, ay + (by - ay) * t / d]);
+  }
+  return pts;
+}
+let AIR_SAMPLES = [];
+
+/* How much of the next few waves arrives by air, weighted by health. A tower
+   that can only shoot one layer is worth exactly what that layer brings. */
+function airShare(waveIndex) {
+  let air = 0, total = 0;
+  for (let i = waveIndex; i < Math.min(M.WAVES.length, waveIndex + 3); i++) {
+    for (const grp of M.WAVES[i].groups) {
+      const hp = M.enemyStats(grp.type, i).hp * grp.count;
+      total += hp;
+      if (M.ENEMIES[grp.type].flying) air += hp;
+    }
+  }
+  return total ? air / total : 0;
 }
 
 /* -------------------------------------------------------------- combat sim */
@@ -71,10 +103,31 @@ class SimEnemy {
     this.slowTime = 0;
     this.active = true;
     this.angle = Math.PI;
+    this.phase = 0;
+    this.baseSpeed = this.speed;
+    if (this.flying) {
+      // Same launch spread as the runtime, so a flier's exposure to a given
+      // tower is simulated at the distance it will really fly.
+      const span = (Math.random() * 2 - 1) * 70;
+      const dx = M.MAP.base.x - this.x, dy = M.MAP.base.y - this.y;
+      const d = Math.hypot(dx, dy) || 1;
+      this.x += -dy / d * span;
+      this.y += dx / d * span;
+      this.flightLength = Math.hypot(M.MAP.base.x - this.x, M.MAP.base.y - this.y);
+    }
   }
   step(dt) {
     if (this.slowTime > 0) this.slowTime -= dt; else this.slow = 0;
     let travel = this.speed * (1 - this.slow) * dt;
+    if (this.flying) {
+      const dx = M.MAP.base.x - this.x, dy = M.MAP.base.y - this.y, d = Math.hypot(dx, dy);
+      if (d <= travel || d < 6) return true;
+      this.angle = Math.atan2(dy, dx);
+      this.x += dx / d * travel;
+      this.y += dy / d * travel;
+      this.travelled = (this.flightLength - d) / this.flightLength * M.pathLength();
+      return false;
+    }
     while (travel > 0 && this.segment < M.MAP.path.length - 1) {
       const b = M.MAP.path[this.segment + 1];
       const dx = b[0] - this.x, dy = b[1] - this.y, d = Math.hypot(dx, dy);
@@ -110,6 +163,21 @@ function simulateWave(state, waveIndex) {
       e.active = false;
       kills++;
       gold += e.reward;
+      return;
+    }
+    // Phase thresholds change a boss's speed and armour and add escorts, all
+    // of which move the wave's length — so the simulator has to run them too.
+    if (!e.phases) return;
+    const pct = e.hp / e.maxHp;
+    while (e.phase < e.phases.length && pct <= e.phases[e.phase].at) {
+      const ph = e.phases[e.phase++];
+      e.speed = e.baseSpeed * (ph.speed || 1);
+      if (ph.armor !== undefined) e.armor = ph.armor;
+      for (const type of ph.escorts || []) {
+        const esc = new SimEnemy(type, waveIndex);
+        if (!esc.flying) { esc.x = e.x; esc.y = e.y; esc.segment = e.segment; esc.travelled = e.travelled; }
+        enemies.push(esc);
+      }
     }
   };
 
@@ -130,7 +198,7 @@ function simulateWave(state, waveIndex) {
       const s = M.towerStats(tower.type, tower.level);
       let target = null, best = -Infinity;
       for (const e of enemies) {
-        if (!e.active) continue;
+        if (!e.active || !M.canTarget(s, e)) continue;
         if (Math.hypot(e.x - tower.x, e.y - tower.y) > s.range) continue;
         if (e.travelled > best) { best = e.travelled; target = e; }
       }
@@ -146,20 +214,21 @@ function simulateWave(state, waveIndex) {
           dmg *= M.TOWERS.arc.chainFalloff;
           let next = null, bd = s.chainRange;
           for (const e of enemies) {
-            if (!e.active || hit.has(e)) continue;
+            if (!e.active || hit.has(e) || !M.canTarget(s, e)) continue;
             const d = Math.hypot(e.x - cur.x, e.y - cur.y);
             if (d < bd) { bd = d; next = e; }
           }
           cur = next;
         }
-      } else if (tower.type === 'cannon') {
+      } else if (s.splash) {
         const flight = Math.hypot(target.x - tower.x, target.y - tower.y) / s.projectile;
         const lead = target.speed * (1 - target.slow) * flight;
         shells.push({
           x: tower.x, y: tower.y,
           aimX: target.x + Math.cos(target.angle) * lead,
           aimY: target.y + Math.sin(target.angle) * lead,
-          speed: s.projectile, damage: s.damage, splash: s.splash, pierce: s.pierce
+          speed: s.projectile, damage: s.damage, splash: s.splash, pierce: s.pierce,
+          splashAir: !!s.splashAir
         });
       } else {
         // Direct-fire towers are fast enough that treating them as hitscan
@@ -174,7 +243,7 @@ function simulateWave(state, waveIndex) {
       const dx = p.aimX - p.x, dy = p.aimY - p.y, d = Math.hypot(dx, dy), step = p.speed * TICK;
       if (d <= step + 7) {
         for (const e of enemies) {
-          if (!e.active) continue;
+          if (!e.active || !!e.flying !== !!p.splashAir) continue;
           const dist = Math.hypot(e.x - p.aimX, e.y - p.aimY);
           if (dist <= p.splash) hurt(e, p.damage * (1 - 0.55 * (dist / p.splash)), p.pierce);
         }
@@ -203,6 +272,21 @@ export const SKILLS = {
   weak:    { spendFraction: 0.58, pick: 2, reserve: 150 }
 };
 
+/* A tower is only worth the layer it can shoot, and it only covers the routes
+   that layer uses; both of those are what stop the greedy bot from filling the
+   map with mortars and then being surprised by a wave of gunships. */
+const layerCover = (pad, type) =>
+  (M.TOWERS[type].targets === 'air' ? pad.cover.air : pad.cover[type]);
+
+function layerWorth(type, waveIndex) {
+  const targets = M.TOWERS[type].targets || 'ground';
+  if (targets === 'both') return 1;
+  const air = airShare(waveIndex);
+  // A floor keeps the bot from selling out entirely on one layer: a wave with
+  // no air at all still leaves flak worth something for the waves after it.
+  return Math.max(0.12, targets === 'air' ? air : 1 - air);
+}
+
 function spend(state, waveIndex, skill = SKILLS.optimal) {
   const log = [];
   const referenceArmor = 0.25;
@@ -214,7 +298,7 @@ function spend(state, waveIndex, skill = SKILLS.optimal) {
 
     for (const pad of state.pads) {
       if (pad.tower) continue;
-      for (const type of ['gun', 'frost', 'cannon', 'arc']) {
+      for (const type of Object.keys(M.TOWERS)) {
         const cost = M.TOWERS[type].cost;
         if (cost > state.gold) continue;
         const s = M.towerStats(type, 1);
@@ -222,7 +306,8 @@ function spend(state, waveIndex, skill = SKILLS.optimal) {
         const worth = type === 'frost'
           ? M.dpsOf('gun', 1, referenceArmor) * s.slow * 2.2
           : M.dpsOf(type, 1, referenceArmor);
-        options.push({ kind: 'build', pad, type, cost, value: worth * pad.cover[type] / cost });
+        options.push({ kind: 'build', pad, type, cost,
+          value: worth * layerCover(pad, type) * layerWorth(type, waveIndex) / cost });
       }
     }
 
@@ -232,7 +317,8 @@ function spend(state, waveIndex, skill = SKILLS.optimal) {
       if (cost > state.gold) continue;
       const gain = M.dpsOf(tower.type, tower.level + 1, referenceArmor) - M.dpsOf(tower.type, tower.level, referenceArmor);
       const pad = state.pads.find(p => p.tower === tower);
-      options.push({ kind: 'upgrade', tower, cost, value: Math.max(1, gain) * pad.cover[tower.type] / cost });
+      options.push({ kind: 'upgrade', tower, cost,
+        value: Math.max(1, gain) * layerCover(pad, tower.type) * layerWorth(tower.type, waveIndex) / cost });
     }
 
     if (!options.length) break;
@@ -261,14 +347,17 @@ function spend(state, waveIndex, skill = SKILLS.optimal) {
 export function run({ verbose = false, model = null, skill = SKILLS.optimal } = {}) {
   if (model) M = model;
   SAMPLES = samplePath();
+  AIR_SAMPLES = sampleAir();
   const state = {
     gold: M.BAL.startGold,
     hp: M.BAL.baseHp,
     towers: [],
     pads: M.MAP.pads.map((p, id) => ({
       ...p, id, tower: null,
-      cover: Object.fromEntries(['gun', 'frost', 'cannon', 'arc']
-        .map(k => [k, coverage(p, M.TOWERS[k].range)]))
+      cover: {
+        ...Object.fromEntries(Object.keys(M.TOWERS).map(k => [k, coverage(p, M.TOWERS[k].range)])),
+        air: coverage(p, M.TOWERS.flak ? M.TOWERS.flak.range : 200, AIR_SAMPLES)
+      }
     }))
   };
 

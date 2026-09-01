@@ -55,25 +55,41 @@ const BAL = {
 const TOWERS = {
   gun: {
     name: 'GUN TOWER', short: 'GUN', cost: 110, damage: 16, rate: 5.0, range: 160,
-    pierce: 0.15, projectile: 900, color: '#5fd0ff', accent: '#1b6fb8',
-    role: 'Rapid single-target fire. Cheap, and the backbone of every line.'
+    pierce: 0.15, projectile: 900, targets: 'both', color: '#5fd0ff', accent: '#1b6fb8',
+    role: 'Rapid single-target fire. Hits air. Cheap, and the backbone of every line.'
   },
   frost: {
     name: 'FROST COIL', short: 'FROST', cost: 170, damage: 12, rate: 2.0, range: 165,
-    pierce: 0, projectile: 860, slow: 0.34, slowTime: 2.0, color: '#8ef0ff', accent: '#1f8fbf',
-    role: 'Chills whatever it hits. Low damage, but it buys every other tower time.'
+    pierce: 0, projectile: 860, slow: 0.34, slowTime: 2.0, targets: 'both',
+    color: '#8ef0ff', accent: '#1f8fbf',
+    role: 'Chills whatever it hits, ground or air. Low damage, but it buys time.'
   },
   cannon: {
     name: 'SIEGE MORTAR', short: 'MORTAR', cost: 240, damage: 78, rate: 0.80, range: 205,
-    pierce: 0.55, projectile: 430, splash: 64, color: '#ffab45', accent: '#c9611b',
-    role: 'Lobs shells at a predicted spot. Splash damage, and it shreds armour.'
+    pierce: 0.55, projectile: 430, splash: 64, targets: 'ground',
+    color: '#ffab45', accent: '#c9611b',
+    role: 'Lobs shells at a predicted spot. Splash and armour-shred — but it cannot reach air.'
   },
   arc: {
     name: 'ARC SPIRE', short: 'ARC', cost: 300, damage: 38, rate: 1.5, range: 180,
-    pierce: 0.30, chains: 3, chainRange: 95, chainFalloff: 0.72,
+    pierce: 0.30, chains: 3, chainRange: 95, chainFalloff: 0.72, targets: 'both',
     color: '#c08dff', accent: '#6a2fc0',
-    role: 'Lightning jumps between packed enemies. Worthless against a lone target.'
+    role: 'Lightning jumps between packed enemies, ground or air. Worthless against a lone target.'
+  },
+  flak: {
+    name: 'FLAK BATTERY', short: 'FLAK', cost: 200, damage: 44, rate: 2.4, range: 215,
+    pierce: 0.20, projectile: 1000, splash: 46, splashAir: true, targets: 'air',
+    color: '#ffd66b', accent: '#b8860b',
+    role: 'Air only. Bursting shells that shred a formation of fliers — and cannot touch the ground.'
   }
+};
+
+/* Which enemies a tower may shoot at. Three of the four ground families can
+   engage air, so a player who never builds flak is inconvenienced rather than
+   hard-locked; flak is simply far more efficient at it. */
+const canTarget = (stats, enemy) => {
+  const t = stats.targets || 'ground';
+  return enemy.flying ? (t === 'air' || t === 'both') : (t === 'ground' || t === 'both');
 };
 
 const ENEMIES = {
@@ -81,7 +97,25 @@ const ENEMIES = {
   scout:   { name: 'SCOUT',      hp: 32,   speed: 112, armor: 0,   reward: 6,   damage: 1,  size: 9,  color: '#8bf05a' },
   armored: { name: 'ARMOURED',   hp: 130,  speed: 48, armor: 0.42, reward: 11,  damage: 2,  size: 13, color: '#2aa05a' },
   heavy:   { name: 'HEAVY',      hp: 430,  speed: 33, armor: 0.22, reward: 23,  damage: 5,  size: 18, color: '#1c7a45' },
-  boss:    { name: 'SAND TITAN', hp: 12000, speed: 25, armor: 0.35, reward: 450, damage: 30, size: 32, color: '#0f5c35', noScale: true }
+  // Fliers ignore the road entirely: they cross the map in a straight line, so
+  // a defence packed around a far corner of the route never sees them.
+  drone:   { name: 'DRONE',      hp: 44,   speed: 96, armor: 0,    reward: 8,   damage: 2,  size: 10, color: '#4fe0cf',
+             flying: true, altitude: 34 },
+  gunship: { name: 'GUNSHIP',    hp: 430,  speed: 42, armor: 0.18, reward: 30,  damage: 6,  size: 17, color: '#2fb9b0',
+             flying: true, altitude: 44 },
+  // The tanker: no armour to pierce, just a wall of health that has to be
+  // ground down while everything else in the wave walks past it.
+  brute:   { name: 'BRUTE',      hp: 1000, speed: 26, armor: 0.30, reward: 55,  damage: 9,  size: 22, color: '#175f38' },
+  // The boss is not one long health bar: it sheds plating and calls in help at
+  // fixed thresholds, so the fight changes shape twice before it ends.
+  boss:    { name: 'SAND TITAN', hp: 12000, speed: 25, armor: 0.38, reward: 450, damage: 30, size: 32,
+             color: '#0f5c35', noScale: true,
+             phases: [
+               { at: 0.66, name: 'PLATING SHED',  speed: 1.30, armor: 0.26, size: 1.0,
+                 escorts: ['armored', 'armored', 'armored'] },
+               { at: 0.33, name: 'CORE EXPOSED',  speed: 1.65, armor: 0.14, size: 0.92,
+                 escorts: ['gunship', 'drone', 'drone', 'drone'] }
+             ] }
 };
 
 const g = (type, count, interval = 0.42, gap = 0) => ({ type, count, interval, gap });
@@ -92,21 +126,25 @@ const WAVES = [
   [g('grunt', 12, 0.58), g('scout', 4, 0.50, 1.4)],
   [g('grunt', 16, 0.54), g('scout', 6, 0.46, 1.2)],
   [g('grunt', 14, 0.52), g('armored', 3, 0.80, 1.6)],
-  [g('grunt', 18, 0.48), g('scout', 8, 0.42, 1.2)],
+  // Air debuts small and alone, so the lesson lands before it costs anything.
+  [g('grunt', 18, 0.48), g('drone', 5, 0.66, 1.6)],
   [g('grunt', 16, 0.48), g('armored', 5, 0.72, 1.4)],
   [g('grunt', 20, 0.44), g('scout', 10, 0.40, 1.0), g('armored', 4, 0.70, 1.0)],
-  [g('grunt', 18, 0.44), g('heavy', 2, 1.10, 1.8)],
+  [g('grunt', 18, 0.44), g('heavy', 2, 1.10, 1.8), g('drone', 4, 0.62, 1.2)],
   [g('grunt', 22, 0.42), g('armored', 8, 0.62, 1.0)],
-  [g('grunt', 20, 0.40), g('scout', 14, 0.36, 1.0), g('armored', 5, 0.64, 1.0)],
+  [g('grunt', 26, 0.38), g('scout', 18, 0.34, 1.0), g('drone', 12, 0.48, 1.0)],
   [g('grunt', 24, 0.40), g('heavy', 3, 1.00, 1.4)],
-  [g('grunt', 22, 0.38), g('scout', 16, 0.34, 0.9), g('armored', 8, 0.58, 0.9)],
+  // The first tanker arrives with an escort that punishes tunnel vision.
+  [g('grunt', 22, 0.38), g('brute', 1, 1.20, 1.6), g('scout', 12, 0.34, 0.9), g('armored', 3, 0.58, 0.9)],
   [g('grunt', 26, 0.36), g('armored', 10, 0.56, 1.0), g('heavy', 3, 0.95, 1.0)],
-  [g('grunt', 24, 0.36), g('scout', 18, 0.32, 0.9), g('heavy', 5, 0.90, 1.0)],
-  [g('grunt', 28, 0.34), g('scout', 12, 0.32, 0.9), g('armored', 12, 0.52, 0.9)],
-  [g('grunt', 24, 0.34), g('armored', 7, 0.54, 0.9), g('heavy', 5, 0.85, 0.9)],
-  [g('grunt', 26, 0.32), g('scout', 18, 0.30, 0.8), g('armored', 11, 0.50, 0.8)],
-  [g('grunt', 26, 0.30), g('scout', 16, 0.30, 0.8), g('armored', 11, 0.48, 0.8), g('heavy', 5, 0.80, 0.8)],
-  [g('boss', 1, 1.0), g('grunt', 24, 0.34, 2.0), g('armored', 8, 0.52, 1.0), g('heavy', 5, 0.85, 1.0)]
+  [g('grunt', 24, 0.36), g('drone', 14, 0.40, 0.9), g('gunship', 2, 1.15, 1.4), g('heavy', 3, 0.92, 1.0)],
+  [g('grunt', 26, 0.34), g('scout', 12, 0.32, 0.9), g('armored', 7, 0.52, 0.9), g('brute', 1, 1.10, 1.0)],
+  [g('grunt', 24, 0.34), g('armored', 7, 0.54, 0.9), g('heavy', 5, 0.85, 0.9), g('gunship', 1, 1.10, 1.0)],
+  [g('grunt', 24, 0.32), g('scout', 12, 0.30, 0.8), g('drone', 16, 0.38, 0.8), g('brute', 1, 1.05, 1.0), g('armored', 6, 0.50, 0.9)],
+  [g('grunt', 24, 0.30), g('scout', 14, 0.30, 0.8), g('armored', 11, 0.48, 0.8), g('heavy', 4, 0.80, 0.8),
+   g('gunship', 2, 1.00, 1.0)],
+  [g('boss', 1, 1.0), g('grunt', 20, 0.34, 2.0), g('armored', 8, 0.52, 1.0), g('brute', 1, 1.05, 1.0),
+   g('gunship', 2, 1.05, 1.0)]
 ].map((groups, i) => ({
   groups,
   bonus: 55 + i * 9,
@@ -205,15 +243,17 @@ const waveSpawnSeconds = i => {
   return t;
 };
 
+let _pathLength = 0;
 const pathLength = () => {
+  if (_pathLength) return _pathLength;
   let d = 0;
   for (let i = 1; i < MAP.path.length; i++)
     d += Math.hypot(MAP.path[i][0] - MAP.path[i - 1][0], MAP.path[i][1] - MAP.path[i - 1][1]);
-  return d;
+  return (_pathLength = d);
 };
 /*--FUN-TD-DATA-END--*/
 
-const TOWER_ORDER = ['gun', 'frost', 'cannon', 'arc'];
+const TOWER_ORDER = ['gun', 'frost', 'cannon', 'arc', 'flak'];
 const TARGET_MODES = [
   { id: 'first',  label: 'FIRST',    hint: 'closest to the base' },
   { id: 'last',   label: 'LAST',     hint: 'furthest from the base' },
@@ -349,6 +389,22 @@ class Enemy {
     this.hitFlash = 0;
     this.walk = Math.random() * Math.PI * 2;
     this.lane = (Math.random() * 2 - 1) * 11;
+    this.phase = 0;
+    this.baseSpeed = this.speed;
+    this.baseSize = this.size;
+    if (this.flying) {
+      // Fliers launch from the spawn point but strike straight at the core,
+      // spread across a band so a formation does not stack into one pixel.
+      const span = (Math.random() * 2 - 1) * 70;
+      const dx = MAP.base.x - this.x, dy = MAP.base.y - this.y;
+      const d = Math.hypot(dx, dy) || 1;
+      this.x += -dy / d * span;
+      this.y += dx / d * span;
+      this.flightLength = Math.hypot(MAP.base.x - this.x, MAP.base.y - this.y);
+      this.angle = Math.atan2(MAP.base.y - this.y, MAP.base.x - this.x);
+      this.bob = Math.random() * Math.PI * 2;
+      this.lane = 0;
+    }
   }
 
   update(dt) {
@@ -356,6 +412,9 @@ class Enemy {
     if (this.hitFlash > 0) this.hitFlash -= dt;
     let travel = this.speed * (1 - this.slow) * dt;
     this.walk += travel * 0.09;
+
+    if (this.flying) return this.fly(travel, dt);
+
     while (travel > 0 && this.segment < MAP.path.length - 1) {
       const b = MAP.path[this.segment + 1];
       const dx = b[0] - this.x, dy = b[1] - this.y, d = Math.hypot(dx, dy);
@@ -368,6 +427,22 @@ class Enemy {
       }
     }
     return this.segment >= MAP.path.length - 1;
+  }
+
+  /* Straight-line flight to the core. `travelled` is reported on the same
+     scale as a ground unit's road distance so the target-priority modes
+     ('first', 'last') stay meaningful in a mixed wave. */
+  fly(travel, dt) {
+    this.bob += dt * 5.5;
+    const dx = MAP.base.x - this.x, dy = MAP.base.y - this.y;
+    const d = Math.hypot(dx, dy);
+    if (d <= travel || d < 6) { this.x = MAP.base.x; this.y = MAP.base.y; return true; }
+    this.angle = Math.atan2(dy, dx);
+    this.x += dx / d * travel;
+    this.y += dy / d * travel;
+    const flown = Math.max(0, (this.flightLength || d) - d);
+    this.travelled = flown / (this.flightLength || d) * pathLength();
+    return false;
   }
 }
 
@@ -409,6 +484,7 @@ class Projectile {
     this.damage = stats.damage;
     this.pierce = stats.pierce || 0;
     this.splash = stats.splash || 0;
+    this.splashAir = !!stats.splashAir;
     this.slow = stats.slow || 0;
     this.slowTime = stats.slowTime || 0;
     this.type = type;
@@ -584,7 +660,7 @@ class Game {
     if (k === 'm') { this.el.sound.click(); return; }
     const pad = this.selectedPad;
     if (!pad) return;
-    if (!pad.tower && '1234'.includes(k)) this.build(pad, TOWER_ORDER[+k - 1]);
+    if (!pad.tower && '12345'.includes(k)) this.build(pad, TOWER_ORDER[+k - 1]);
     else if (pad.tower && k === 'u') this.upgrade(pad);
     else if (pad.tower && k === 's') this.sell(pad);
     else if (pad.tower && k === 't') this.cycleMode(pad);
@@ -655,11 +731,17 @@ class Game {
     if (!host) return;
     if (this.phase !== 'build' || !WAVES[this.waveIndex]) { host.innerHTML = ''; host.classList.remove('show'); return; }
     const rows = waveIntel(this.waveIndex).map(r =>
-      `<span class="intel-unit" data-unit="${r.type}"><i style="--c:${ENEMIES[r.type].color}"></i>${r.name}<b>×${r.count}</b></span>`
+      `<span class="intel-unit${ENEMIES[r.type].flying ? ' air' : ''}" data-unit="${r.type}">` +
+      `<i style="--c:${ENEMIES[r.type].color}"></i>${ENEMIES[r.type].flying ? '▲ ' : ''}${r.name}<b>×${r.count}</b></span>`
     ).join('');
     const hp = Math.round(waveEffectiveHp(this.waveIndex));
+    // An air wave punishes a line with no anti-air far harder than a bigger
+    // ground wave would, so it is called out rather than left to be inferred.
+    const air = waveIntel(this.waveIndex).some(r => ENEMIES[r.type].flying);
     host.innerHTML =
-      `<div class="intel-head">NEXT WAVE ${this.waveIndex + 1} <em>${hp.toLocaleString('en-US')} effective HP</em></div>` +
+      `<div class="intel-head">NEXT WAVE ${this.waveIndex + 1}` +
+      (air ? ' <b class="intel-air">AIR</b>' : '') +
+      ` <em>${hp.toLocaleString('en-US')} effective HP</em></div>` +
       `<div class="intel-units">${rows}</div>`;
     host.classList.add('show');
   }
@@ -693,6 +775,11 @@ class Game {
       if (t.slow) tags.push('<span class="tag cold">SLOW</span>');
       if (t.chains) tags.push('<span class="tag arc">CHAIN</span>');
       if (t.pierce >= 0.3) tags.push('<span class="tag pierce">ARMOUR</span>');
+      // The ground/air line decides whether a tower is useful at all in a
+      // given wave, so it is the first thing the card says.
+      if (t.targets === 'air') tags.unshift('<span class="tag air">AIR ONLY</span>');
+      else if (t.targets === 'both') tags.unshift('<span class="tag air">HITS AIR</span>');
+      else tags.unshift('<span class="tag ground">GROUND ONLY</span>');
       return `<button class="tcard" data-build="${key}" data-tower="${key}" ${afford ? '' : 'disabled'}>
         <span class="tcard-key">${i + 1}</span>
         <span class="tcard-art" style="--c:${t.color};--a:${t.accent}"></span>
@@ -898,6 +985,7 @@ class Game {
     let best = null, bestScore = -Infinity;
     for (const e of this.enemies) {
       if (!e.active) continue;
+      if (!canTarget(stats, e)) continue;
       const d = Math.hypot(e.x - tower.x, e.y - tower.y);
       if (d > stats.range) continue;
       let score;
@@ -955,7 +1043,7 @@ class Game {
       damage *= TOWERS.arc.chainFalloff;
       let next = null, bestD = stats.chainRange;
       for (const e of this.enemies) {
-        if (!e.active || hit.has(e)) continue;
+        if (!e.active || hit.has(e) || !canTarget(stats, e)) continue;
         const d = Math.hypot(e.x - current.x, e.y - current.y);
         if (d < bestD) { bestD = d; next = e; }
       }
@@ -971,7 +1059,45 @@ class Game {
     enemy.hp -= dealt;
     enemy.hitFlash = 0.09;
     if (tower) tower.damageDealt += Math.round(Math.min(dealt, enemy.hp + dealt));
-    if (enemy.hp <= 0) this.kill(enemy, tower);
+    if (enemy.hp <= 0) { this.kill(enemy, tower); return; }
+    if (enemy.phases) this.checkPhase(enemy);
+  }
+
+  /* A phased enemy re-reads its own stats when its health crosses a threshold.
+     Every change is applied off the *base* value rather than compounding, so
+     the thresholds stay independent of the order they happen to fire in. */
+  checkPhase(e) {
+    const pct = e.hp / e.maxHp;
+    while (e.phase < e.phases.length && pct <= e.phases[e.phase].at) {
+      const p = e.phases[e.phase++];
+      e.speed = e.baseSpeed * (p.speed || 1);
+      if (p.armor !== undefined) e.armor = p.armor;
+      if (p.size) e.size = e.baseSize * p.size;
+      for (const type of p.escorts || []) this.escort(type, e);
+      this.banner = { text: `${e.name}: ${p.name}`, life: 1.3, color: '#ff8a5a' };
+      this.ring(e.x, e.y, '#ff8a5a', 0.55, 14, 120);
+      this.burst(e.x, e.y, '#ffb24b', 34);
+      this.shake = Math.max(this.shake, 12);
+      Sound.play('boom', 40);
+    }
+  }
+
+  /* Escorts join the fight where their parent is standing, not back at the
+     spawn point — otherwise calling for help would be a reward, not a threat. */
+  escort(type, parent) {
+    const e = new Enemy(type, this.waveIndex);
+    e.x = parent.x; e.y = parent.y;
+    if (e.flying) {
+      e.flightLength = Math.hypot(MAP.base.x - e.x, MAP.base.y - e.y);
+      e.angle = Math.atan2(MAP.base.y - e.y, MAP.base.x - e.x);
+    } else {
+      e.segment = parent.segment;
+      e.travelled = parent.travelled;
+      e.angle = parent.angle;
+    }
+    this.enemies.push(e);
+    this.waveTotal++;
+    return e;
   }
 
   hit(p) {
@@ -981,7 +1107,9 @@ class Game {
       this.shake = Math.max(this.shake, 5);
       Sound.play('boom', 60);
       for (const e of this.enemies) {
-        if (!e.active) continue;
+        // A mortar shell bursts on the ground and a flak shell bursts in the
+        // air; neither reaches the other layer just because it landed nearby.
+        if (!e.active || !!e.flying !== !!p.splashAir) continue;
         const d = Math.hypot(e.x - p.x, e.y - p.y);
         if (d > p.splash) continue;
         // Full damage at the centre, 45% at the rim.
@@ -1144,8 +1272,11 @@ class Game {
       this.drawRange(c, this.selectedPad.tower);
 
     for (const pad of this.pads) if (!pad.tower) this.drawPad(c, pad);
-    for (const e of this.enemies) if (e.active) this.drawEnemy(c, e);
+    // Ground units pass behind the towers and fliers pass over them: the
+    // layering is the same information the shadow gap gives, said twice.
+    for (const e of this.enemies) if (e.active && !e.flying) this.drawEnemy(c, e);
     for (const t of this.towers) this.drawTower(c, t);
+    for (const e of this.enemies) if (e.active && e.flying) this.drawEnemy(c, e);
     for (const t of this.towers) if (t.arc) this.drawArc(c, t);
     for (const p of this.projectiles) if (p.active) this.drawProjectile(c, p);
 
@@ -1372,7 +1503,7 @@ function boot() {
     // Published for the art layer, the balance simulator and the tests.
     window.FUN_TD_MODEL = {
       MAP, BAL, TOWERS, ENEMIES, WAVES, TOWER_ORDER, TARGET_MODES,
-      towerStats, upgradeCost, investedAt, dpsOf, damageAfterArmor,
+      towerStats, upgradeCost, investedAt, dpsOf, damageAfterArmor, canTarget,
       enemyStats, waveIntel, waveEffectiveHp, waveSpawnSeconds, countWave, pathLength
     };
   } catch (err) {

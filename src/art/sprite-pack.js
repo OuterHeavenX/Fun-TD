@@ -562,20 +562,35 @@ function drawTowerAt(c, t) {
   return true;
 }
 
+/* How far above its ground position a unit is drawn. Shared so the health bar,
+   the body and any caller that needs to point at a unit all agree. */
+const liftOf = e => (e.flying ? (e.altitude || 34) + Math.sin(e.bob || 0) * 3 : 0);
+
 function drawEnemyAt(c, e, x, y) {
   const name = enemyArt(e.type);
   const size = e.size || 11;
   const w = size * 4.2;
 
+  /* A flier is drawn above its own position, with its shadow left behind on
+     the ground. That gap is the only cue the player has that a unit cannot be
+     shot by a ground-only tower, so it is deliberately large: the shadow is
+     small, dark and offset, and the body is drawn bigger to sell the height. */
+  const lift = liftOf(e);
+  const shadowScale = e.flying ? 0.62 : 1;
+  const bodyScale = e.flying ? 1.12 : 1;
+
   c.save();
-  c.globalAlpha = 0.30;
+  c.globalAlpha = e.flying ? 0.22 : 0.30;
   c.fillStyle = '#000';
   c.beginPath();
-  c.ellipse(x + 3, y + 5, size * 1.15, size * 0.68, 0, 0, Math.PI * 2);
+  c.ellipse(x + (e.flying ? 6 : 3), y + (e.flying ? 9 : 5),
+    size * 1.15 * shadowScale, size * 0.68 * shadowScale, 0, 0, Math.PI * 2);
   c.fill();
   c.restore();
 
-  if (!blit(c, name, x, y, w, e.angle || 0)) return false;
+  y -= lift;
+
+  if (!blit(c, name, x, y, w * bodyScale, e.angle || 0)) return false;
 
   if (e.hitFlash > 0) {
     c.save();
@@ -607,6 +622,7 @@ function drawEnemyAt(c, e, x, y) {
 }
 
 function drawHealthBarAt(c, e, x, y) {
+  y -= liftOf(e);
   if (e.hp >= e.maxHp) return;
   const size = e.size || 11;
   const w = Math.max(24, size * 2.2);

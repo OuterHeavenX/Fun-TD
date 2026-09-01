@@ -404,6 +404,21 @@ html[data-sector='1'] .panel {
 .tag.cold   { color: #8ef0ff;       box-shadow: inset 0 0 0 1px #8ef0ff55; }
 .tag.arc    { color: var(--violet); box-shadow: inset 0 0 0 1px #c08dff55; }
 .tag.pierce { color: #ffd47a;       box-shadow: inset 0 0 0 1px #ffd47a55; }
+/* Which layer a tower can shoot decides whether it is any use in the wave
+   about to arrive, so it is the loudest tag on the card. */
+.tag.air    { color: #ffe08a; background: #6a4b0733; box-shadow: inset 0 0 0 1px #ffd66b88; }
+.tag.ground { color: #94b3d1; box-shadow: inset 0 0 0 1px #94b3d144; }
+/* Air rows in the wave briefing get the same colour as the anti-air tag. */
+.intel-unit.air { color: #ffe08a; }
+.intel-air {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #6a4b07;
+  box-shadow: inset 0 0 0 1px #ffd66b88;
+  color: #ffe08a;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+}
 
 /* ------------------------------------------------------------- stat table */
 

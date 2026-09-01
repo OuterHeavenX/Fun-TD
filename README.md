@@ -79,6 +79,47 @@ from that sector's own numbers so each keeps its own scale. Every wave that gain
 pays for it out of its own biggest ground group rather than stacking on top, so the
 campaign's tuned wave curve is not moved by the new roster.
 
+## The 3D battlefield
+
+The battlefield renders as a real 3D isometric scene, with a camera the player
+can orbit a full circle by dragging, pinch or wheel to zoom, and a one-tap
+reset. Towers, turrets, enemies and the command core are glTF models — the same
+procedural Blender geometry the sprites are rendered from, exported as `.glb`
+rather than rendered to PNG, so the two looks are the same art.
+
+It is a hybrid rather than a rewrite, and deliberately so. The campaign's six
+runtimes are all 2D: they hold entity positions in a flat 720×1120 world and
+paint the whole scene into one canvas. Rewriting six renderers would be
+rewriting the game. Instead:
+
+- **The 2D canvas becomes the ground plane's live texture.** Terrain, the route,
+  build pads, range previews, floating damage numbers and particle effects keep
+  working exactly as they did, and land on the ground in correct perspective for
+  free — in all six sectors, none of which know anything about 3D.
+- **Only the actors are lifted into 3D.** The four game methods that would
+  otherwise paint a flattened tower or unit onto the ground beneath its own
+  model are replaced with no-ops. Nothing else about the game is touched.
+- **`pointer()` is the one hook that makes a rotated camera possible.** Every
+  sector converts a pointer event to world coordinates in exactly one place;
+  replacing it with a raycast onto the ground plane keeps every tap, pad pick
+  and menu working at any camera angle.
+
+Units are sized by the same rule the 2D layer uses — a sprite is drawn
+`size * 4.2` pixels wide, and each part records the camera span it was framed
+in — so a grunt is the same size in both renderers rather than half again too
+big, which is what a single uniform scale gave.
+
+Three.js is vendored under `vendor/three/` (MIT, r160) rather than loaded from a
+CDN, so the game stays playable offline with no build step. Its modules are
+patched to import each other by relative path: as published they import from the
+bare specifier `three`, which a browser cannot resolve, and a test now asserts
+none of them do.
+
+**It degrades.** Without WebGL, without the models, or if anything in the stage
+throws, the 3D canvas is removed and the untouched 2D game is still there. A
+corner control switches to the flat 2D battlefield at any time, and the way back
+to 3D lives in `loader.js` — outside the layer that was just switched off.
+
 ## Art pipeline
 
 Every tower, enemy, prop and the command core is modelled procedurally in Blender by
@@ -171,9 +212,22 @@ python3 -m http.server 8080
 Then open `http://localhost:8080`. No installation, build, API key or backend required
 to play; Node is needed only for the tests and Blender only to regenerate art.
 
+Regenerating art has two modes, both driven by the same procedural geometry:
+
+```bash
+blender -b -noaudio --python tools/blender/build_sprites.py -- --out assets/sprites
+blender -b -noaudio --python tools/blender/build_sprites.py -- --out assets/models --gltf
+```
+
+The first renders sprites through Cycles; the second exports `.glb` models for the
+3D stage and needs no rendering at all. The glTF pass drops every segment count and
+bevel to game resolution — a level 4 gun platform goes from 851KB to 246KB — while
+the sprite pass is left byte-identical, which was checked by rendering the same part
+with and without the change and comparing pixel hashes.
+
 ## Tests
 
-`npm test` — 88 deterministic tests covering pad placement against the route, the
+`npm test` — 96 deterministic tests covering pad placement against the route, the
 difficulty ramp, wave readability, upgrade pricing, refunds, armour and pierce, tower
 role separation, targeting modes, path interpolation, save migration, 250-enemy spatial
 indexing and duplicate-loop prevention, plus scripted-player runs asserting that a
@@ -198,7 +252,7 @@ modifiers.
 Driven in headless Chromium at 430×932 (phone) and 1440×900 (desktop), against a local
 static server.
 
-- `npm test`: 88/88 passing.
+- `npm test`: 96/96 passing.
 - All six sectors and endless mode boot clean, load all 46 sprites, and play with towers
   built. Sectors 01–05 take the full themed treatment; 06 takes everything but its
   background, which it paints inline.
@@ -273,7 +327,28 @@ static server.
   down to a flock of drones. Boss waves are now left alone entirely, and the budget is
   sized against the health that can actually pay it.
 
-Not done: physical phone hardware, and a full unassisted human playthrough of any sector.
+#### The 3D stage
+
+- **Tap round-trip**: a build pad's world position projected to the screen
+  through the 3D camera, tapped there, and checked against the pad the game
+  actually selected — 18 of 18 across six camera angles from 0 to 3.6 radians of
+  azimuth and 0.4 to 1.2 of elevation. This is the check that matters: if the
+  input mapping were wrong, every tap would land on the wrong pad the moment the
+  camera moved.
+- **Orbit**: dragging turns the camera past a full half circle and keeps going —
+  257° reached in the probe — with the whole map framed at every angle.
+- All six sectors install the stage and render real meshes with no console
+  errors (101–140 draw calls per sector after merging).
+- The 2D fallback round-trips: 3D by default, the corner control drops to the
+  flat battlefield, and the control that appears there brings 3D back.
+
+Not done: physical phone hardware, and a full unassisted human playthrough of any
+sector. **Frame rate on a real GPU is also unmeasured** — this container has only
+software WebGL, which renders the stage at about 1fps and says nothing about a
+phone. What was done instead is to cut the work honestly: merging each model's
+parts by material took a sector from 264–380 draw calls to 101–140, the shadow
+map is 1024², the device pixel ratio is capped at 1.75, and the scene does not
+render at all while the home screen is up.
 
 ## Known limitations
 

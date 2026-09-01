@@ -1,0 +1,296 @@
+{
+  "models": {
+    "arc_base_l1": {
+      "file": "arc_base_l1.glb",
+      "ortho": 3.1
+    },
+    "arc_base_l2": {
+      "file": "arc_base_l2.glb",
+      "ortho": 3.1
+    },
+    "arc_base_l3": {
+      "file": "arc_base_l3.glb",
+      "ortho": 3.1
+    },
+    "arc_base_l4": {
+      "file": "arc_base_l4.glb",
+      "ortho": 3.1
+    },
+    "arc_turret_l1": {
+      "file": "arc_turret_l1.glb",
+      "ortho": 3.1
+    },
+    "arc_turret_l2": {
+      "file": "arc_turret_l2.glb",
+      "ortho": 3.1
+    },
+    "arc_turret_l3": {
+      "file": "arc_turret_l3.glb",
+      "ortho": 3.1
+    },
+    "arc_turret_l4": {
+      "file": "arc_turret_l4.glb",
+      "ortho": 3.1
+    },
+    "cannon_base_l1": {
+      "file": "cannon_base_l1.glb",
+      "ortho": 3.1
+    },
+    "cannon_base_l2": {
+      "file": "cannon_base_l2.glb",
+      "ortho": 3.1
+    },
+    "cannon_base_l3": {
+      "file": "cannon_base_l3.glb",
+      "ortho": 3.1
+    },
+    "cannon_base_l4": {
+      "file": "cannon_base_l4.glb",
+      "ortho": 3.1
+    },
+    "cannon_turret_l1": {
+      "file": "cannon_turret_l1.glb",
+      "ortho": 3.1
+    },
+    "cannon_turret_l2": {
+      "file": "cannon_turret_l2.glb",
+      "ortho": 3.1
+    },
+    "cannon_turret_l3": {
+      "file": "cannon_turret_l3.glb",
+      "ortho": 3.1
+    },
+    "cannon_turret_l4": {
+      "file": "cannon_turret_l4.glb",
+      "ortho": 3.1
+    },
+    "core": {
+      "file": "core.glb",
+      "ortho": 3.1
+    },
+    "enemy_armored": {
+      "file": "enemy_armored.glb",
+      "ortho": 1.9
+    },
+    "enemy_boss": {
+      "file": "enemy_boss.glb",
+      "ortho": 2.9
+    },
+    "enemy_brute": {
+      "file": "enemy_brute.glb",
+      "ortho": 2.1
+    },
+    "enemy_drone": {
+      "file": "enemy_drone.glb",
+      "ortho": 1.7
+    },
+    "enemy_grunt": {
+      "file": "enemy_grunt.glb",
+      "ortho": 1.7
+    },
+    "enemy_gunship": {
+      "file": "enemy_gunship.glb",
+      "ortho": 2.0
+    },
+    "enemy_heavy": {
+      "file": "enemy_heavy.glb",
+      "ortho": 2.0
+    },
+    "enemy_mite": {
+      "file": "enemy_mite.glb",
+      "ortho": 1.3
+    },
+    "enemy_scout": {
+      "file": "enemy_scout.glb",
+      "ortho": 1.7
+    },
+    "enemy_splitter": {
+      "file": "enemy_splitter.glb",
+      "ortho": 1.9
+    },
+    "enemy_surger": {
+      "file": "enemy_surger.glb",
+      "ortho": 1.9
+    },
+    "enemy_warden": {
+      "file": "enemy_warden.glb",
+      "ortho": 2.0
+    },
+    "flak_base_l1": {
+      "file": "flak_base_l1.glb",
+      "ortho": 3.1
+    },
+    "flak_base_l2": {
+      "file": "flak_base_l2.glb",
+      "ortho": 3.1
+    },
+    "flak_base_l3": {
+      "file": "flak_base_l3.glb",
+      "ortho": 3.1
+    },
+    "flak_base_l4": {
+      "file": "flak_base_l4.glb",
+      "ortho": 3.1
+    },
+    "flak_turret_l1": {
+      "file": "flak_turret_l1.glb",
+      "ortho": 3.1
+    },
+    "flak_turret_l2": {
+      "file": "flak_turret_l2.glb",
+      "ortho": 3.1
+    },
+    "flak_turret_l3": {
+      "file": "flak_turret_l3.glb",
+      "ortho": 3.1
+    },
+    "flak_turret_l4": {
+      "file": "flak_turret_l4.glb",
+      "ortho": 3.1
+    },
+    "frost_base_l1": {
+      "file": "frost_base_l1.glb",
+      "ortho": 3.1
+    },
+    "frost_base_l2": {
+      "file": "frost_base_l2.glb",
+      "ortho": 3.1
+    },
+    "frost_base_l3": {
+      "file": "frost_base_l3.glb",
+      "ortho": 3.1
+    },
+    "frost_base_l4": {
+      "file": "frost_base_l4.glb",
+      "ortho": 3.1
+    },
+    "frost_turret_l1": {
+      "file": "frost_turret_l1.glb",
+      "ortho": 3.1
+    },
+    "frost_turret_l2": {
+      "file": "frost_turret_l2.glb",
+      "ortho": 3.1
+    },
+    "frost_turret_l3": {
+      "file": "frost_turret_l3.glb",
+      "ortho": 3.1
+    },
+    "frost_turret_l4": {
+      "file": "frost_turret_l4.glb",
+      "ortho": 3.1
+    },
+    "gun_base_l1": {
+      "file": "gun_base_l1.glb",
+      "ortho": 3.1
+    },
+    "gun_base_l2": {
+      "file": "gun_base_l2.glb",
+      "ortho": 3.1
+    },
+    "gun_base_l3": {
+      "file": "gun_base_l3.glb",
+      "ortho": 3.1
+    },
+    "gun_base_l4": {
+      "file": "gun_base_l4.glb",
+      "ortho": 3.1
+    },
+    "gun_turret_l1": {
+      "file": "gun_turret_l1.glb",
+      "ortho": 3.1
+    },
+    "gun_turret_l2": {
+      "file": "gun_turret_l2.glb",
+      "ortho": 3.1
+    },
+    "gun_turret_l3": {
+      "file": "gun_turret_l3.glb",
+      "ortho": 3.1
+    },
+    "gun_turret_l4": {
+      "file": "gun_turret_l4.glb",
+      "ortho": 3.1
+    },
+    "prop_barrel": {
+      "file": "prop_barrel.glb",
+      "ortho": 1.3
+    },
+    "prop_crate": {
+      "file": "prop_crate.glb",
+      "ortho": 1.4
+    },
+    "prop_rock": {
+      "file": "prop_rock.glb",
+      "ortho": 1.5
+    },
+    "prop_sandbags": {
+      "file": "prop_sandbags.glb",
+      "ortho": 1.9
+    },
+    "rail_base_l1": {
+      "file": "rail_base_l1.glb",
+      "ortho": 3.1
+    },
+    "rail_base_l2": {
+      "file": "rail_base_l2.glb",
+      "ortho": 3.1
+    },
+    "rail_base_l3": {
+      "file": "rail_base_l3.glb",
+      "ortho": 3.1
+    },
+    "rail_base_l4": {
+      "file": "rail_base_l4.glb",
+      "ortho": 3.1
+    },
+    "rail_turret_l1": {
+      "file": "rail_turret_l1.glb",
+      "ortho": 3.1
+    },
+    "rail_turret_l2": {
+      "file": "rail_turret_l2.glb",
+      "ortho": 3.1
+    },
+    "rail_turret_l3": {
+      "file": "rail_turret_l3.glb",
+      "ortho": 3.1
+    },
+    "rail_turret_l4": {
+      "file": "rail_turret_l4.glb",
+      "ortho": 3.1
+    },
+    "void_base_l1": {
+      "file": "void_base_l1.glb",
+      "ortho": 3.1
+    },
+    "void_base_l2": {
+      "file": "void_base_l2.glb",
+      "ortho": 3.1
+    },
+    "void_base_l3": {
+      "file": "void_base_l3.glb",
+      "ortho": 3.1
+    },
+    "void_base_l4": {
+      "file": "void_base_l4.glb",
+      "ortho": 3.1
+    },
+    "void_turret_l1": {
+      "file": "void_turret_l1.glb",
+      "ortho": 3.1
+    },
+    "void_turret_l2": {
+      "file": "void_turret_l2.glb",
+      "ortho": 3.1
+    },
+    "void_turret_l3": {
+      "file": "void_turret_l3.glb",
+      "ortho": 3.1
+    },
+    "void_turret_l4": {
+      "file": "void_turret_l4.glb",
+      "ortho": 3.1
+    }
+  }
+}

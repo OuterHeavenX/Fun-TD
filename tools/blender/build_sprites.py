@@ -24,6 +24,9 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = os.path.abspath(argv[argv.index("--out") + 1] if "--out" in argv else "assets/sprites")
 ONLY = argv[argv.index("--only") + 1].split(",") if "--only" in argv else None
 SAMPLES = int(argv[argv.index("--samples") + 1] if "--samples" in argv else 320)
+# --gltf exports the same procedural geometry as .glb models for the 3D stage
+# instead of rendering it to sprites. Same shapes, same materials, no Cycles.
+GLTF = "--gltf" in argv
 os.makedirs(OUT, exist_ok=True)
 
 # The world is modelled so one tower deck spans 2.0 units across.  The camera
@@ -32,6 +35,7 @@ os.makedirs(OUT, exist_ok=True)
 ORTHO = 3.1
 
 MANIFEST = {"orthoScale": ORTHO, "parts": {}}
+MODELS = {}
 
 # A --only run renders a subset, so start from the manifest already on disk:
 # otherwise writing it back would drop every part this run did not touch.
@@ -78,7 +82,22 @@ def mat(name, color, metallic=0.7, roughness=0.35, emission=None, strength=0.0, 
     return m
 
 
-def finish(obj, material, bevel=0.012, segments=3, shade_smooth=False):
+# Sprite renders are stills, so the primitives above are built at whatever
+# density looks smooth under Cycles. The 3D stage draws the same shapes sixty
+# times a second on a phone, where a 52x14 torus for a decorative collar is
+# thousands of triangles nobody can see. LOD scales every segment count and
+# bevel down for the glTF pass only, which takes the gun tower's level 4 base
+# from 851KB to something a browser can load a whole campaign of.
+LOD = 0.45 if GLTF else 1.0
+BEVEL_SEGMENTS = 1 if GLTF else 3
+
+
+def seg(n, floor=6):
+    """Scale a segment count for the current output, never below `floor`."""
+    return max(floor, int(round(n * LOD)))
+
+
+def finish(obj, material, bevel=0.012, segments=BEVEL_SEGMENTS, shade_smooth=False):
     obj.data.materials.append(material)
     if bevel:
         b = obj.modifiers.new("bevel", "BEVEL")
@@ -92,7 +111,10 @@ def finish(obj, material, bevel=0.012, segments=3, shade_smooth=False):
 
 
 def cyl(r, h, loc=(0, 0, 0), rot=(0, 0, 0), verts=48, material=None, bevel=0.012, smooth=True):
-    bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=r, depth=h, location=loc, rotation=rot)
+    # An 8-vertex cylinder is a deliberate octagon in several models, so a
+    # low count is kept exactly rather than scaled into a different shape.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=verts if verts <= 12 else seg(verts, 12),
+                                        radius=r, depth=h, location=loc, rotation=rot)
     o = bpy.context.object
     if smooth:
         bpy.ops.object.shade_smooth()
@@ -110,6 +132,7 @@ def box(size, loc=(0, 0, 0), rot=(0, 0, 0), material=None, bevel=0.014):
 
 
 def ball(r, loc=(0, 0, 0), material=None, segments=32):
+    segments = seg(segments, 10)
     bpy.ops.mesh.primitive_uv_sphere_add(radius=r, location=loc, segments=segments, ring_count=segments // 2)
     o = bpy.context.object
     bpy.ops.object.shade_smooth()
@@ -119,14 +142,15 @@ def ball(r, loc=(0, 0, 0), material=None, segments=32):
 def ring(major, minor, loc=(0, 0, 0), rot=(0, 0, 0), material=None):
     bpy.ops.mesh.primitive_torus_add(
         major_radius=major, minor_radius=minor, location=loc, rotation=rot,
-        major_segments=52, minor_segments=14)
+        major_segments=seg(52, 16), minor_segments=seg(14, 6))
     o = bpy.context.object
     bpy.ops.object.shade_smooth()
     return finish(o, material, 0)
 
 
 def cone(r1, r2, h, loc=(0, 0, 0), rot=(0, 0, 0), material=None, verts=40):
-    bpy.ops.mesh.primitive_cone_add(vertices=verts, radius1=r1, radius2=r2, depth=h, location=loc, rotation=rot)
+    bpy.ops.mesh.primitive_cone_add(vertices=verts if verts <= 8 else seg(verts, 10),
+                                    radius1=r1, radius2=r2, depth=h, location=loc, rotation=rot)
     o = bpy.context.object
     bpy.ops.object.shade_smooth()
     o.data.use_auto_smooth = True
@@ -244,10 +268,41 @@ def render(name, resolution, note="", ortho=ORTHO):
     print("rendered", name)
 
 
+def export_gltf(name, ortho=ORTHO):
+    """Write the current scene's geometry as a .glb.
+
+    Only the meshes go: no camera, no lights, no shadow catcher, because the
+    3D stage lights and frames the scene itself. Materials survive the trip -
+    glTF carries base colour, metallic, roughness and emission natively, which
+    is exactly the set the Principled BSDF above uses."""
+    path = os.path.join(OUT, name + ".glb")
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.export_scene.gltf(
+        filepath=path,
+        export_format="GLB",
+        use_selection=True,
+        export_apply=True,          # bake the bevel and mirror modifiers in
+        export_yup=True,            # Blender is Z-up, three.js is Y-up
+        export_cameras=False,
+        export_lights=False,
+    )
+    # The camera span each part was framed in. The 2D layer draws a sprite at a
+    # width in pixels; dividing by this gives pixels-per-Blender-unit, which is
+    # what the 3D stage needs to place the same model at the same size.
+    MODELS[name] = {"file": name + ".glb", "ortho": ortho}
+    print("exported", name)
+
+
 def build(name, resolution, fn, catcher=True, note="", ortho=ORTHO):
     if ONLY and not any(name.startswith(p) for p in ONLY):
         return
     clear()
+    if GLTF:
+        # No scene setup at all: a shadow catcher plane and a set of lights
+        # would otherwise be exported as part of the model.
+        fn()
+        export_gltf(name, ortho)
+        return
     setup_scene(ortho)
     if catcher:
         shadow_catcher()
@@ -941,6 +996,12 @@ def main():
 
     for name, (fn, res, ortho) in WORLD.items():
         build(name, res, fn, note="static", ortho=ortho)
+
+    if GLTF:
+        with open(os.path.join(OUT, "models.json"), "w") as f:
+            json.dump({"models": MODELS}, f, indent=2, sort_keys=True)
+        print("model manifest written with", len(MODELS), "models")
+        return
 
     with open(os.path.join(OUT, "manifest.json"), "w") as f:
         json.dump(MANIFEST, f, indent=2, sort_keys=True)

@@ -33,6 +33,15 @@ ORTHO = 3.1
 
 MANIFEST = {"orthoScale": ORTHO, "parts": {}}
 
+# A --only run renders a subset, so start from the manifest already on disk:
+# otherwise writing it back would drop every part this run did not touch.
+if ONLY:
+    try:
+        with open(os.path.join(OUT, "manifest.json")) as _f:
+            MANIFEST["parts"] = json.load(_f).get("parts", {})
+    except (OSError, ValueError):
+        pass
+
 
 # ------------------------------------------------------------------- helpers
 
@@ -253,6 +262,9 @@ PAL = {
     "cannon": {"hull": (0.13, 0.08, 0.06), "plate": (0.44, 0.22, 0.09), "trim": (0.82, 0.32, 0.05), "glow": (1.0, 0.48, 0.10)},
     "frost":  {"hull": (0.08, 0.16, 0.22), "plate": (0.24, 0.42, 0.54), "trim": (0.12, 0.55, 0.76), "glow": (0.40, 0.86, 1.0)},
     "arc":    {"hull": (0.11, 0.08, 0.19), "plate": (0.26, 0.21, 0.42), "trim": (0.42, 0.16, 0.86), "glow": (0.66, 0.36, 1.0)},
+    "flak":   {"hull": (0.16, 0.13, 0.06), "plate": (0.40, 0.34, 0.16), "trim": (0.86, 0.62, 0.10), "glow": (1.0, 0.82, 0.28)},
+    "rail":   {"hull": (0.10, 0.13, 0.15), "plate": (0.34, 0.41, 0.46), "trim": (0.70, 0.92, 1.0), "glow": (0.80, 0.96, 1.0)},
+    "void":   {"hull": (0.10, 0.05, 0.13), "plate": (0.28, 0.14, 0.34), "trim": (0.86, 0.16, 0.62), "glow": (1.0, 0.34, 0.80)},
 }
 
 STEEL = (0.30, 0.33, 0.36)
@@ -431,7 +443,146 @@ def turret_arc(level):
         ball(0.15, (-0.06, 0, 1.00), material=glow)
 
 
-TURRETS = {"gun": turret_gun, "cannon": turret_cannon, "frost": turret_frost, "arc": turret_arc}
+def turret_flak(level):
+    """Anti-air battery: twin autocannons on a high elevated mount.
+
+    An overhead camera foreshortens elevation to nothing, so the barrels are
+    pitched only slightly and instead say "anti-air" through shape: long thin
+    tubes with muzzle brakes, a stepped riser that lifts them clear of the
+    deck, an exposed ammunition drum, and a radar dish - none of which any
+    ground turret in this set has."""
+    p = PAL["flak"]
+    hull, plate = _yoke(p, width=0.56, length=0.44)
+    steel = mat("steel", STEEL, 0.88, 0.28)
+    brass = mat("brass", (0.72, 0.54, 0.16), 0.80, 0.30)
+    trim = mat("trim", p["trim"], 0.30, 0.28, p["glow"], 1.2)
+    dark = mat("dark", DARK, 0.35, 0.60)
+
+    # A riser under the cradle: the reason the barrels clear everything else.
+    box((0.34, 0.50, 0.30), (-0.04, 0, 0.62), material=hull)
+    box((0.40, 0.66, 0.20), (0.06, 0, 0.80), material=plate)
+
+    # Twin barrels: long, thin and only gently pitched, so they stay long on
+    # screen while the shallow rise still separates them from the deck.
+    for side in (-1, 1):
+        cyl(0.055, 0.96, (0.60, side * 0.21, 0.94), rot=(0, math.radians(78), 0),
+            material=steel, bevel=0.006)
+        for j in range(3):                                   # muzzle brake vents
+            cyl(0.085, 0.035, (0.86 + j * 0.09, side * 0.21, 1.00),
+                rot=(0, math.radians(78), 0), material=dark, bevel=0.005)
+        cyl(0.095, 0.10, (1.06, side * 0.21, 1.04), rot=(0, math.radians(78), 0),
+            material=trim, bevel=0.01)
+        box((0.20, 0.13, 0.12), (0.22, side * 0.21, 0.90), material=dark)   # breech
+
+    cyl(0.19, 0.24, (-0.26, 0, 0.86), material=brass, bevel=0.02)           # ammo drum
+    ring(0.19, 0.045, (-0.26, 0, 0.99), material=trim)
+    for i in range(6):                                                      # shell belt
+        a = math.radians(i * 60)
+        cyl(0.03, 0.09, (-0.26 + math.cos(a) * 0.13, math.sin(a) * 0.13, 1.02), material=brass)
+
+    if level >= 2:                                                          # radar dish
+        cyl(0.035, 0.26, (-0.40, 0.30, 0.82), material=steel, bevel=0.004)
+        cone(0.26, 0.05, 0.14, (-0.40, 0.30, 0.98), (math.radians(28), 0, 0), material=plate)
+        ball(0.05, (-0.40, 0.30, 1.04), material=trim)
+    if level >= 3:
+        for side in (-1, 1):                                                # loader boxes
+            box((0.30, 0.16, 0.20), (-0.10, side * 0.42, 0.70), material=hull)
+            box((0.22, 0.07, 0.06), (-0.10, side * 0.42, 0.82), material=trim)
+    if level >= 4:                                                          # third barrel
+        cyl(0.058, 0.92, (0.58, 0, 1.14), rot=(0, math.radians(80), 0), material=steel, bevel=0.006)
+        cyl(0.095, 0.10, (1.02, 0, 1.22), rot=(0, math.radians(80), 0), material=trim, bevel=0.01)
+        box((0.26, 0.30, 0.14), (0.10, 0, 1.06), material=plate)
+
+
+def turret_rail(level):
+    """Unlockable long-range gun: one enormous accelerator down the +X axis.
+
+    Where the flak battery says "up", this says "far".  The whole model is a
+    single unbroken line from breech to muzzle, longer than any other turret
+    in the set, with the capacitor mass pulled back behind the pivot so the
+    barrel visibly outweighs its own mounting."""
+    p = PAL["rail"]
+    hull, plate = _yoke(p, width=0.50, length=0.40)
+    steel = mat("steel", (0.42, 0.47, 0.52), 0.92, 0.22)
+    trim = mat("trim", p["trim"], 0.20, 0.20, p["glow"], 1.4)
+    dark = mat("dark", DARK, 0.35, 0.58)
+
+    # Twin rails with a lit accelerator gap running between them.
+    for side in (-1, 1):
+        box((1.50, 0.09, 0.11), (0.52, side * 0.11, 0.64), material=steel)
+        box((0.14, 0.11, 0.13), (1.22, side * 0.11, 0.64), material=dark)
+    box((1.34, 0.05, 0.05), (0.48, 0, 0.64), material=trim)
+
+    # Breech and capacitor mass, counterweighted behind the pivot.
+    box((0.40, 0.40, 0.26), (-0.10, 0, 0.62), material=plate)
+    for side in (-1, 1):
+        cyl(0.13, 0.34, (-0.34, side * 0.20, 0.60), rot=(0, math.radians(90), 0), material=hull)
+        cyl(0.06, 0.36, (-0.34, side * 0.20, 0.60), rot=(0, math.radians(90), 0), material=trim)
+    box((0.20, 0.52, 0.14), (-0.52, 0, 0.62), material=plate)
+
+    if level >= 2:                                   # rangefinder mast
+        cyl(0.03, 0.24, (0.10, 0.26, 0.76), material=steel, bevel=0.004)
+        box((0.16, 0.07, 0.07), (0.16, 0.26, 0.88), material=trim)
+    if level >= 3:                                   # heat sinks along the rails
+        for side in (-1, 1):
+            for j in range(4):
+                box((0.06, 0.20, 0.14), (0.20 + j * 0.26, side * 0.11, 0.72), material=plate)
+    if level >= 4:                                   # second stage on the muzzle
+        for side in (-1, 1):
+            box((0.40, 0.08, 0.09), (1.44, side * 0.11, 0.64), material=steel)
+        ring(0.20, 0.05, (1.30, 0, 0.64), rot=(0, math.radians(90), 0), material=trim)
+        box((0.26, 0.36, 0.18), (-0.14, 0, 0.84), material=hull)
+
+
+def turret_void(level):
+    """Unlockable area denier: a caged singularity on a three-pronged claw.
+
+    It has no barrel at all, which is the point - among a set of guns, the one
+    silhouette with nothing pointing out of it reads instantly as "not a gun".
+    The claw is modelled *above* the orb rather than beside it, because from
+    directly overhead anything at the orb's own height is simply swallowed by
+    it, and the forward prong is longer than the other two so the tower still
+    has a facing at 40 pixels."""
+    p = PAL["void"]
+    hull, plate = _yoke(p, width=0.58, length=0.48)
+    core = mat("core", (0.90, 0.14, 0.60), 0.05, 0.12, p["glow"], 2.4)
+    trim = mat("trim", p["trim"], 0.25, 0.26, p["glow"], 1.1)
+    steel = mat("steel", (0.34, 0.29, 0.38), 0.88, 0.30)
+
+    cyl(0.34, 0.22, (0, 0, 0.52), verts=6, material=hull, bevel=0.03, smooth=False)
+    ball(0.26, (0, 0, 0.74), material=core)                    # the singularity
+
+    # Claw arms, rising over the orb and closing above it. Drawn last and
+    # highest so they stay on top of the glow instead of behind it.
+    for angle, reach in ((0, 0.86), (128, 0.62), (-128, 0.62)):
+        r = math.radians(angle)
+        for t, z, w in ((0.55, 0.72, 0.15), (0.92, 0.98, 0.12)):
+            box((reach * 0.62, w, 0.13), (math.cos(r) * reach * t, math.sin(r) * reach * t, z),
+                (0, math.radians(-30), r), material=steel)
+        ball(0.10, (math.cos(r) * reach, math.sin(r) * reach, 0.66), material=trim)
+    # The forward prong gets a lance tip so front and back never look alike.
+    cone(0.11, 0.02, 0.30, (1.02, 0, 0.66), (0, math.radians(96), 0), material=trim)
+
+    # Containment rings, tilted so they read as a cage rather than a plate.
+    ring(0.42, 0.045, (0, 0, 0.74), rot=(math.radians(62), 0, 0), material=steel)
+    ring(0.42, 0.045, (0, 0, 0.74), rot=(math.radians(62), 0, math.radians(90)), material=steel)
+
+    if level >= 2:
+        ring(0.52, 0.04, (0, 0, 0.74), material=trim)
+    if level >= 3:
+        polar(6, 0.56, math.radians(30),
+              lambda i, x, y, a: cyl(0.055, 0.22, (x, y, 0.58), material=trim, bevel=0.006))
+    if level >= 4:
+        # A wider outer ring, not a bigger ball: the orb must not grow enough
+        # to swallow the claw it is caged by.
+        ring(0.68, 0.05, (0, 0, 0.80), rot=(math.radians(24), 0, 0), material=trim)
+        for angle in (52, 180, -52):
+            r = math.radians(angle)
+            ball(0.09, (math.cos(r) * 0.68, math.sin(r) * 0.68, 0.88), material=core)
+
+
+TURRETS = {"gun": turret_gun, "cannon": turret_cannon, "frost": turret_frost,
+           "arc": turret_arc, "flak": turret_flak, "rail": turret_rail, "void": turret_void}
 
 
 # --------------------------------------------------------------------- enemy
@@ -599,8 +750,103 @@ def enemy_warden():
 
 
 # (builder, resolution, ortho framing) — each unit is framed to fill its sprite.
+def enemy_drone():
+    """Flying scout. Rotors and a cast shadow are the whole read: from above a
+    flier must not be mistakable for something walking the road."""
+    body = mat("b", (0.20, 0.58, 0.52), 0.35, 0.42)
+    dark = mat("d", (0.05, 0.20, 0.20), 0.35, 0.55)
+    steel = mat("s", (0.28, 0.32, 0.32), 0.88, 0.30)
+    eye = _eye((0.60, 1.0, 0.90), 1.6)
+    # Fuselage rides high; the rotors are the widest thing and sit higher still.
+    cone(0.20, 0.06, 0.66, (0.10, 0, 0.72), (0, math.radians(90), 0), material=body)
+    box((0.26, 0.22, 0.14), (-0.16, 0, 0.78), material=dark)
+    for side in (-1, 1):
+        for fx in (0.24, -0.26):
+            cyl(0.035, 0.16, (fx, side * 0.34, 0.74), material=steel, bevel=0.004)
+            ring(0.20, 0.028, (fx, side * 0.38, 0.86), material=steel)   # rotor guard
+            for blade in range(2):
+                box((0.36, 0.05, 0.018), (fx, side * 0.38, 0.87),
+                    (0, 0, math.radians(38 + blade * 90)), material=dark)
+    ball(0.075, (0.34, 0, 0.74), material=eye)                            # nose sensor
+    for side in (-1, 1):
+        ball(0.04, (-0.30, side * 0.14, 0.70), material=eye)
+
+
+def enemy_gunship():
+    """Flying heavy. Broad, armoured and slow, with underslung guns."""
+    body = mat("b", (0.14, 0.42, 0.44), 0.42, 0.44)
+    plate = mat("p", (0.28, 0.34, 0.34), 0.90, 0.30)
+    dark = mat("d", (0.06, 0.18, 0.20), 0.35, 0.58)
+    hot = _eye((1.0, 0.56, 0.30), 1.7)
+    cyl(0.34, 0.34, (-0.04, 0, 0.72), verts=6, material=body, bevel=0.03, smooth=False)
+    cone(0.34, 0.12, 0.52, (0.44, 0, 0.72), (0, math.radians(90), 0), verts=6, material=plate)
+    box((0.62, 0.24, 0.16), (-0.32, 0, 0.80), material=plate)             # tail boom
+    box((0.14, 0.52, 0.10), (-0.60, 0, 0.84), material=dark)              # tailplane
+    for side in (-1, 1):
+        box((0.30, 0.62, 0.12), (0.02, side * 0.42, 0.66), material=plate)   # stub wing
+        cyl(0.13, 0.26, (0.02, side * 0.58, 0.60), rot=(0, math.radians(90), 0), material=dark)
+        ring(0.28, 0.035, (0.02, side * 0.62, 0.94), material=plate)         # rotor guard
+        for blade in range(3):
+            box((0.52, 0.06, 0.02), (0.02, side * 0.62, 0.95),
+                (0, 0, math.radians(blade * 60 + 20)), material=dark)
+        cyl(0.05, 0.34, (0.24, side * 0.30, 0.52), rot=(0, math.radians(90), 0), material=plate)
+        ball(0.055, (0.44, side * 0.30, 0.52), material=hot)                 # gun pods
+    ball(0.08, (0.56, 0, 0.80), material=hot)
+
+
+def enemy_brute():
+    """Ground tanker: a walking siege carapace.
+
+    The first attempt was a slab torso, and from overhead a slab is a plain
+    rectangle that says nothing.  This is built instead as a hexagonal
+    carapace with radial plating - a shape the eye reads as armour at 40px -
+    with two forward horns that fix the facing, four legs breaking the
+    outline at the corners, and heat vents trailing behind."""
+    body = mat("b", (0.10, 0.34, 0.20), 0.45, 0.48)
+    plate = mat("p", (0.34, 0.38, 0.35), 0.90, 0.30)
+    heavy = mat("h", (0.16, 0.18, 0.18), 0.75, 0.42)
+    hot = _eye((1.0, 0.36, 0.22), 1.9)
+
+    # Legs first, at the four corners, so they sit under the carapace edge.
+    for side in (-1, 1):
+        for fx, lift in ((0.34, 0.20), (-0.36, 0.18)):
+            cyl(0.12, 0.28, (fx, side * 0.62, lift), material=heavy, bevel=0.02)
+            box((0.30, 0.22, 0.14), (fx + 0.10, side * 0.70, 0.10), material=plate)
+
+    # Hexagonal carapace, tapered forward, with a raised inner deck.
+    cyl(0.72, 0.40, (-0.06, 0, 0.34), verts=6, material=body, bevel=0.04, smooth=False)
+    cyl(0.46, 0.22, (-0.06, 0, 0.58), verts=6, material=plate, bevel=0.03, smooth=False)
+    ring(0.70, 0.07, (-0.06, 0, 0.52), material=heavy)
+
+    # Radial plating: six wedges keyed to the carapace corners.
+    polar(6, 0.52, math.radians(30),
+          lambda i, x, y, a: box((0.34, 0.14, 0.20), (x - 0.06, y, 0.50), (0, 0, a), material=plate))
+
+    # Forward horns. Two prongs pushed well past the body outline are the
+    # single clearest facing cue this silhouette can carry.
+    for side in (-1, 1):
+        cone(0.13, 0.03, 0.62, (0.86, side * 0.24, 0.42),
+             (0, math.radians(84), math.radians(side * -12)), material=plate)
+        box((0.26, 0.16, 0.22), (0.58, side * 0.26, 0.42), material=heavy)
+    box((0.24, 0.46, 0.18), (0.62, 0, 0.56), (0, math.radians(-22), 0), material=plate)
+
+    # Head sunk between the horns, eyes visible from directly above.
+    cyl(0.17, 0.18, (0.44, 0, 0.64), material=body)
+    for side in (-1, 1):
+        ball(0.06, (0.54, side * 0.11, 0.72), material=hot)
+
+    # Exhaust stacks trailing behind, so front and back never look alike.
+    for side in (-1, 1):
+        cyl(0.09, 0.30, (-0.70, side * 0.26, 0.50), material=heavy, bevel=0.01)
+        ball(0.07, (-0.70, side * 0.26, 0.66), material=hot)
+    box((0.22, 0.34, 0.12), (-0.84, 0, 0.42), material=plate)
+
+
 ENEMIES = {
     "grunt": (enemy_grunt, 160, 1.7),
+    "drone": (enemy_drone, 160, 1.7),
+    "gunship": (enemy_gunship, 208, 2.0),
+    "brute": (enemy_brute, 224, 2.1),
     "scout": (enemy_scout, 160, 1.7),
     "armored": (enemy_armored, 192, 1.9),
     "heavy": (enemy_heavy, 224, 2.0),
@@ -681,7 +927,7 @@ WORLD = {
 # ---------------------------------------------------------------------- main
 
 def main():
-    for kind in ("gun", "cannon", "frost", "arc"):
+    for kind in ("gun", "cannon", "frost", "arc", "flak", "rail", "void"):
         for level in (1, 2, 3, 4):
             build(f"{kind}_base_l{level}", 256,
                   lambda k=kind, l=level: tower_base(k, l),

@@ -8,6 +8,7 @@
     "serve": "npx --yes serve .",
     "sprites": "blender -b -noaudio --python tools/blender/build_sprites.py -- --out assets/sprites",
     "tune": "node tools/tune.js",
-    "audit": "node tools/campaign-audit.js"
+    "audit": "node tools/campaign-audit.js",
+    "fit": "node tools/curve-fit.js"
   }
 }

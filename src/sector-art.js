@@ -24,16 +24,22 @@ const SHAPE = {
   4: { install: 'installCompact', ctxKey: 'ctx' },
   // Sector 05 offsets a unit's lane on the vertical axis only.
   5: { install: 'installCompact', ctxKey: 'x', laneOffset: e => [0, e.lane || 0] },
+  // Sector 06 now exposes drawWorld too, so it takes the themed terrain.
   6: { install: 'installCompact', ctxKey: 'x' }
 };
 
 /* Scenery scattered off the route, seeded per sector so the same layout comes
    back every time without a table of hand-placed coordinates per map. */
 function scatter(path, base, theme) {
-  // Snow and void maps get bare rock and crates; the warmer maps get the lot.
-  const kinds = theme.name === 'frost' || theme.name === 'night' || theme.name === 'null'
-    ? ['prop_rock', 'prop_rock', 'prop_crate']
-    : ['prop_rock', 'prop_crate', 'prop_barrel', 'prop_sandbags'];
+  // Wooden crates and fuel drums belong at a desert outpost, not adrift in a
+  // void fortress, so the further the campaign gets from ground the less of the
+  // supply-dump scenery is appropriate.
+  const kinds = theme.name === 'null' || theme.name === 'night'
+    ? ['prop_rock']
+    : theme.name === 'frost'
+      ? ['prop_rock', 'prop_rock', 'prop_crate']
+      : ['prop_rock', 'prop_crate', 'prop_barrel', 'prop_sandbags'];
+  const budget = theme.name === 'null' ? 8 : theme.name === 'night' ? 12 : 18;
 
   const farFromRoute = (x, y) => {
     let best = Infinity;
@@ -49,7 +55,7 @@ function scatter(path, base, theme) {
   const props = [];
   let seed = 1337 + sector * 7919;
   const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-  for (let tries = 0; tries < 400 && props.length < 18; tries++) {
+  for (let tries = 0; tries < 400 && props.length < budget; tries++) {
     const x = 30 + rand() * 660, y = 60 + rand() * 1010;
     if (!farFromRoute(x, y)) continue;
     if (props.some(p => Math.hypot(p[1] - x, p[2] - y) < 70)) continue;

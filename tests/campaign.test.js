@@ -115,3 +115,30 @@ test('the pad hook stays inert when the art pack has not installed', () => {
       `sector ${sector} pad hook is not the expected guarded form`);
   }
 });
+
+test('every sector theme names painters that exist', () => {
+  const pack = read('src/art/sprite-pack.js');
+  const themes = pack.match(/features:\s*\[([^\]]*)\]/g) || [];
+  assert.ok(themes.length >= 6, 'every sector should list ground features');
+  const named = new Set();
+  for (const block of themes)
+    for (const m of block.matchAll(/'([a-zA-Z]+)'/g)) named.add(m[1]);
+  for (const feature of named)
+    assert.ok(new RegExp(`\\n  ${feature}\\(c, theme\\)`).test(pack),
+      `theme references a painter "${feature}" that is not defined`);
+});
+
+test('sector 06 exposes a world method so it can be themed', () => {
+  // It used to paint its background inline, which is why it was the one sector
+  // left on its own terrain.
+  assert.ok(/drawWorld\(\)/.test(read('src/sector6.js')));
+});
+
+test('ground painters are deterministic', () => {
+  // The scenery must not reshuffle between loads, so every painter draws from a
+  // seeded stream rather than Math.random.
+  const pack = read('src/art/sprite-pack.js');
+  const features = pack.slice(pack.indexOf('const FEATURES = {'), pack.indexOf('function paintTerrain'));
+  assert.ok(!features.includes('Math.random'),
+    'ground features must be seeded, not random, or the map changes every load');
+});

@@ -13,8 +13,15 @@ const M = loadModel();
 test('the data block exposes the full model', () => {
   assert.equal(M.WAVES.length, 20);
   assert.ok(M.MAP.pads.length >= 10);
-  assert.deepEqual(Object.keys(M.TOWERS), ['gun', 'frost', 'cannon', 'arc']);
+  assert.deepEqual(Object.keys(M.TOWERS), ['gun', 'frost', 'cannon', 'arc', 'flak', 'rail', 'void']);
   assert.ok(Object.keys(M.ENEMIES).includes('boss'));
+  // Every tower declares which layer it can shoot, and at least one of each
+  // side of that line exists — otherwise fliers are either free or trivial.
+  const targets = Object.values(M.TOWERS).map(t => t.targets);
+  assert.ok(targets.every(Boolean), 'every tower must declare a targets layer');
+  assert.ok(targets.includes('air'), 'there must be a dedicated anti-air tower');
+  assert.ok(targets.includes('ground'), 'there must be a tower air can fly past');
+  assert.ok(Object.values(M.ENEMIES).some(e => e.flying), 'there must be a flying enemy');
 });
 
 test('no build pad sits on the route', () => {

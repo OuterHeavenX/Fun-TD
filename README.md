@@ -16,23 +16,68 @@ pad, `U` upgrade, `S` sell, `T` targeting, `Space` start wave or pause, `P` paus
 
 ## Towers
 
-| Tower | Cost | Role |
-| --- | --- | --- |
-| **Gun Tower** | 110 | Rapid single-target fire. The backbone of every line. |
-| **Frost Coil** | 170 | Low damage, but the slow buys every other tower time. |
-| **Siege Mortar** | 240 | Lobs shells at a predicted spot. Splash, and it shreds armour. |
-| **Arc Spire** | 300 | Lightning chains between packed enemies. Poor against a lone target. |
+| Tower | Cost | Layer | Unlocked by | Role |
+| --- | --- | --- | --- | --- |
+| **Gun Tower** | 110 | Ground + air | Start | Rapid single-target fire. The backbone of every line. |
+| **Frost Coil** | 170 | Ground + air | Start | Low damage, but the slow buys every other tower time. |
+| **Siege Mortar** | 240 | Ground only | Start | Lobs shells at a predicted spot. Splash, and it shreds armour. |
+| **Arc Spire** | 300 | Ground + air | Start | Lightning chains between packed enemies. Poor against a lone target. |
+| **Flak Battery** | 200 | Air only | Survive wave 5 | Bursting shells that shred a whole flight. Cannot touch the ground. |
+| **Rail Lance** | 420 | Ground + air | Clear Sector 02 | Fires a line across half the map, through armour and everything behind it. |
+| **Void Spire** | 520 | Ground + air | Clear Sector 04 | A collapsing field. No barrel, no aiming, no escaping it by flying. |
 
 Each has four levels. Damage, fire rate and range all improve; the tower panel shows
 `current → next` so an upgrade argues for itself. Selling returns 72% of what went in.
 
+**Layers.** Every tower declares which enemies it can shoot. The rule is enforced at
+initial acquisition, at every arc chain hop, and at the splash radius — a mortar shell
+bursts on the ground and a flak shell bursts in the air, and neither reaches the other
+layer just because it landed nearby. Three of the four starting families reach air, so
+flak is the *efficient* answer rather than the only one: a player who never builds it is
+inconvenienced, not hard-locked.
+
+**Unlocks.** The rules live in the data block beside the towers they gate
+(`src/runtime.js`), so the balance simulator gates its scripted player exactly the way a
+real account is gated — adding unlockable towers cannot move the first-playthrough
+curve, and a test asserts the fresh-account run never builds one. `src/unlocks.js`
+bridges those rules to saved state and keeps a fallback copy for screens that load
+before any sector runtime does; a test asserts the copy has not drifted. `build()` is
+the single gate every path funnels through, so a locked family cannot be placed by menu,
+hotkey or anything added later. The build menu shows locked cards rather than hiding
+them, and the home screen's collection rail opens a Tower Collection sheet listing the
+whole roster and what earns the rest of it.
+
 ## Enemies
 
-Grunt, Scout, Armoured, Heavy and the Sand Titan differ in health, speed, **armour**,
-reward and breach damage. Armour is flat damage reduction that a tower's **pierce**
-cancels part of — which is the whole reason to mix mortars and arc spires into a wall
-of gun towers. Enemy health scales quadratically with the wave number, so a grunt in
-wave 19 is a real threat rather than the same 46 HP it had in wave 1.
+Grunt, Scout, Armoured, Heavy, Drone, Gunship, Brute and the Sand Titan differ in
+health, speed, **armour**, reward and breach damage. Armour is flat damage reduction
+that a tower's **pierce** cancels part of — which is the whole reason to mix mortars and
+arc spires into a wall of gun towers. Enemy health scales quadratically with the wave
+number, so a grunt in wave 19 is a real threat rather than the same 46 HP it had in
+wave 1.
+
+**Fliers** ignore the road. A drone or gunship launches from the spawn point and strikes
+straight at the command core, spread across a band so a flight does not stack into one
+pixel — which means a defence packed around a far corner of the route never sees them.
+They report `travelled` on the same scale as a ground unit's road distance, so FIRST and
+LAST target priorities still mean something in a mixed wave. They are drawn lifted off
+the ground with their shadow left behind, and pass over the towers rather than behind
+them.
+
+**The Brute** is the tanker: the heaviest thing short of a boss, no gimmick, just health
+and armour that has to be ground down while the rest of the wave walks past it.
+
+**Bosses are not one long health bar.** At 66% and 33% health the Sand Titan sheds
+plating — faster and less armoured each time — and calls in escorts that arrive where it
+is standing rather than back at the spawn. The second wave of escorts is airborne, so
+anti-air has to still be standing at the end of the fight. Escorts are counted into the
+wave total, so the progress bar stays honest.
+
+Sectors 02–06 get all of the above from `src/air.js`, which installs one copy of the
+mechanic onto whichever of those five older runtimes booted, with unit stats derived
+from that sector's own numbers so each keeps its own scale. Every wave that gains air
+pays for it out of its own biggest ground group rather than stacking on top, so the
+campaign's tuned wave curve is not moved by the new roster.
 
 ## Art pipeline
 
@@ -74,6 +119,7 @@ offscreen canvas rather than every frame.
 npm run balance     # per-wave table for a scripted player (Sector 01)
 npm run tune        # parameter sweep scored against three skill tiers
 npm run audit       # difficulty-curve shape across all six sectors
+npm run fit         # solve the later sectors' curve from their own capacity
 ```
 
 `tools/balance-sim.js` lifts the balance data straight out of `src/runtime.js` — the
@@ -97,6 +143,20 @@ That patching silently stops applying the moment the numbers it matches on chang
 `src/dustwall-art.js` decorates the running game by replacing its draw methods.
 `styles/ui.css` settles the interface on top of the older sector stylesheets.
 
+`src/home.js` and `styles/home.css` are the home screen: a player bar, campaign banner,
+side rails, a stage card painting the sector's own terrain through the shared sprite
+pack, and a bottom navigation bar that adopts the buttons `finale.js` appends at
+runtime. Three older stylesheets style the screen it replaced with ID-level
+`!important` rules, so those are neutralised at matching specificity in `home.css`
+rather than edited, which would change every other screen.
+
+`src/air.js` installs air combat, tankers and phased bosses onto sectors 02–06. Three of
+its four pieces need no changes to those sectors at all — table extension, a per-instance
+`update` override for flight, and a wrapper around the game's update for boss phases.
+Only the ground/air targeting rule needed their source touched, because acquisition is
+written inline inside their update loops; those edits call straight back into `air.js`,
+so the rule has one definition.
+
 `src/data`, `src/core`, `src/combat` and friends are an earlier module tree the shipping
 game does not load. `SpatialGrid`, `TargetingSystem`, `GameLoop`, `SaveManager` and
 `Path` still carry their own tests; the data stubs beside them are stale and are no
@@ -113,78 +173,116 @@ to play; Node is needed only for the tests and Blender only to regenerate art.
 
 ## Tests
 
-`npm test` — 41 deterministic tests covering pad placement against the route, the
+`npm test` — 88 deterministic tests covering pad placement against the route, the
 difficulty ramp, wave readability, upgrade pricing, refunds, armour and pierce, tower
 role separation, targeting modes, path interpolation, save migration, 250-enemy spatial
 indexing and duplicate-loop prevention, plus scripted-player runs asserting that a
 competent player clears the sector and that no wave grinds on after it stops spawning.
 
+The newer suites are worth calling out because they encode rules rather than numbers:
+the ground/air layers are mutually exclusive and complete and a tower that forgets to
+declare one stays ground-only; splash never crosses the layer it burst on; every flier
+is introduced before the wave that leans on air; each boss phase is a real trade, faster
+*and* less armoured; a fresh account has exactly the four starting families, every
+locked tower says how to earn it, and adding unlockable towers does not move the
+first-playthrough curve. `src/unlocks.js` keeps a fallback copy of the unlock rules for
+screens that load before any sector runtime does, and a test asserts it answers
+identically to the data block, so the copy cannot drift unnoticed.
+
 Development mode is available through query parameters: `?sector=2`…`?sector=6` for the
 later sectors, `?endless=1` for endless defence, `?challenge=rush|budget|fragile` for
 modifiers.
 
-### Validation record (2026-08-31)
+### Validation record (2026-09-01)
 
 Driven in headless Chromium at 430×932 (phone) and 1440×900 (desktop), against a local
 static server.
 
-- `npm test`: 32/32 passing. Six of these were failing on `main` before this work — they
-  asserted against the unused `src/data` stubs and have been repointed at the live model.
-- Sector 01 boots, loads all 42 sprites, and plays: all four tower families build,
-  upgrade, retarget and sell; 13 waves played through in one session; 334 kills recorded.
-  No console errors and no failed requests.
-- **Defeat**: building nothing overruns the base and raises the flow overlay
-  (`BASE OVERRUN`, retry actions present).
-- **Victory**: the Sand Titan spawns at 12,000 HP, dies to a maxed line in 8.5s at 3×,
-  and the flow overlay reports `DUSTWALL HELD`, a ★★★ medal, and unlocks Frostline Pass.
-  `funTD_sector1Clear` and `funTD_sector1Stars` persist.
-- **Per-tower accounting**: each family fought waves 1–4 alone and was credited exactly
-  62 kills and 3,352 damage — the authored enemy count and total health for those waves.
-- **Load**: 260 enemies queued to arrive almost at once against 12 maxed towers holds a
-  16.7ms median and 16.8ms p95 frame time (60fps) with 220 units alive.
-- Sectors 02–06 and endless mode all boot clean, load all 46 sprites, and play a wave
-  with towers built. Sectors 02–05 pick up the full themed treatment; 06 gets towers,
-  enemies, core and pads over its own background.
-- Splitting Sector 05's `draw()` into overridable methods was verified as a pure
-  refactor: with the sprite manifest blocked, a pinned scene of 6 towers and all 6 enemy
-  types renders to a byte-identical PNG and pixel hash before and after the change. The
-  same check covers the Sector 04 and 06 pad hooks.
-- `npm run balance`: effective health ramps 460 (wave 1) → 91,795 (wave 20); every wave
-  resolves inside 62s for the scripted optimal player.
-- **Load, later sectors**: the largest authored wave rendered with no towers so the whole
-  crowd stays on screen holds a 16.7ms median frame time (60fps) in sectors 02, 03, 04
-  and 06 at 59–66 concurrent sprite-drawn enemies.
+- `npm test`: 88/88 passing.
+- All six sectors and endless mode boot clean, load all 46 sprites, and play with towers
+  built. Sectors 01–05 take the full themed treatment; 06 takes everything but its
+  background, which it paints inline.
+- **Research plumbing**: every sector's effective tower stats, enemy speeds, starting gold
+  and base health captured in the browser under a heavy research load plus a challenge
+  modifier, before and after moving off `loader.js` string patching. Sectors 02, 03, 05
+  and 06 came out bit-identical; Sector 04 changed only in the intended direction, its
+  gun damage moving 20.7 → 23.184 to match what the other five already had.
+- **Refactor safety**: splitting Sector 05's `draw()` and Sector 06's world painting into
+  overridable methods was verified pixel-identical — same PNG byte count and pixel hash
+  with the sprite manifest blocked — as were the Sector 04/06 pad hooks.
+- **Wave length**: every sector probed against a fully maxed line, at 3× speed. Waves 19
+  and 20 are the ones worth reading:
 
-Not done: testing on physical phone hardware, and a full unassisted 20-wave human
-playthrough.
+  | Sector | wave 19 | wave 20 | leaked at wave 20 |
+  | --- | --- | --- | --- |
+  | 01 Dustwall | 13.1s | 16.1s | none |
+  | 02 Frostline | 16.5s | 30.0s | 10 |
+  | 03 Ashfall | 19.6s | 34.4s | 10 |
+  | 04 Black Tide | 17.8s | 32.4s | 19 |
+  | 05 Nightfall | 15.2s | 20.8s | none |
+  | 06 Null Fortress | 18.4s | 31.1s | 42 |
 
-### Where the campaign's difficulty comes from
+  Every finale still costs a maxed line something, which is the intent. Sector 06 is the
+  hardest wave in the game, which suits the final assault — and that figure is with only
+  9 of its 12 pads built.
 
-`npm run audit` reads every sector's wave table and separates the two ways a
-tower-defense campaign can get harder — more enemies, or tougher ones:
+  Worth recording how that table was got wrong first: the probe drove each sector's own
+  build and upgrade methods, and sectors 05 and 06 have neither — both live inside their
+  menu handlers, and the upgrade one is called `upMenu`, which the probe did not know
+  about. Those two were therefore measured with **level-1 towers** and looked disastrous
+  (wave 20 at 49s and 52s, leaking 46 and 132). That was the measurement, not the game.
+- **Load**: 60fps median in all six sectors, including with effects saturated to their
+  420-effect cap, and at 220 concurrent enemies in Sector 01.
 
-| Sector | wave 1 → final HP | from crowd size | from tougher units | peak wave |
-| --- | --- | --- | --- | --- |
-| 01 Dustwall | 199× | 3.8× | **52×** | 58 |
-| 02 Frostline | 24× | 10.4× | 2.3× | 161 |
-| 03 Ashfall | 26× | 10.5× | 2.4× | 160 |
-| 04 Black Tide | 23× | 10.5× | 2.2× | 162 |
-| 05 Nightfall | 22× | 7.7× | 2.8× | 160 |
-| 06 Null Fortress | 22× | 6.9× | 3.1× | 149 |
+#### Air, tankers, phased bosses and unlocks
 
-Sectors 02–06 lean on crowd size, peaking at roughly 160 units in a single wave.
-That is a legitimate design for a swarm defence and it renders at 60fps, so it has
-been measured and left alone rather than rewritten to match Sector 01's shape —
-their per-enemy ramp of 2.2–3.1× means units *do* get tougher, which is the defect
-Sector 01 actually had (its ramp was 1.0×, a wave-20 grunt had wave-1 health).
+- **The targeting layers, checked in the game rather than the simulator.** With one
+  tower family on the board at a time in Sector 01: the mortar scored on grunts and
+  heavies and never once on a flier; flak scored on drones and gunships and never on the
+  ground; the gun scored on both. Fliers left the road by up to 171px. The same probe on
+  Sectors 02–06 gave the same answer on all five.
+- **Boss phases**: the Sand Titan stepped 0.38 → 0.26 → 0.14 armour and 25 → 33 → 41
+  speed at 63% and 30% health, its escorts growing the crowd from 1 to 8.
+- **Unlocks**: a fresh account offers exactly the four starting families and refuses a
+  direct `build()` of a locked one; reaching wave 6 unlocks flak inside that same run
+  and it places; a veteran account reads 7/7 and both unlockable towers acquire, fire
+  and clear a late wave.
+- **Wave 20 against a maxed, fully unlocked line**, at 3× speed, before and after:
+
+  | Sector | before | after | leaked before | leaked after |
+  | --- | --- | --- | --- | --- |
+  | 01 Dustwall | 16.1s | 12.5s | none | none |
+  | 02 Frostline | 30.0s | 35.0s | 10 | 25 |
+  | 03 Ashfall | 34.4s | 39.7s | 10 | 25 |
+  | 04 Black Tide | 32.4s | 36.6s | 19 | 37 |
+  | 05 Nightfall | 20.8s | 21.1s | none | none |
+  | 06 Null Fortress | 31.1s | 30.7s | 42 | 34 |
+
+  Sector 01 got *faster* because its line now includes flak. Sectors 02–04 cost a maxed
+  line roughly 15 more health on the finale, which is the phased boss doing what it was
+  added to do; 05 and 06 are unchanged and slightly improved.
+
+  Three wrong numbers were measured on the way to that table, all of them the harness
+  rather than the game. The probe cycled through every tower in the table, so **locked
+  families were silently refused** and Sector 01 was measured with 8 of its 12 pads
+  filled — which read as a difficulty regression that was not there. `build()` re-reads
+  saved progress on every call, so unlocking had to be done in `localStorage` rather
+  than in the probe's own idea of it. And Sector 02's finale genuinely did regress, from
+  a 10 HP breach to 73: `airRaid` counted the boss's flat 6400 health into the air
+  budget and then took the whole bill out of the ground units, stripping the last wave
+  down to a flock of drones. Boss waves are now left alone entirely, and the budget is
+  sized against the health that can actually pay it.
+
+Not done: physical phone hardware, and a full unassisted human playthrough of any sector.
 
 ## Known limitations
 
 - The scripted optimal and average players both finish Sector 01 at full health; only the
   unpractised tier takes real damage. That suits an opening campaign sector, but the
   spread is narrower than it should be for the later ones, which have not been retuned.
-- Only Sector 01 has been rebalanced. Sectors 02–06 keep their original numbers and are
-  still balanced by `loader.js` regex patching.
+- The later sectors are tuned against Sector 01's verified curve and played through
+  headlessly, but they have no scripted-player simulator of their own the way Sector 01
+  does, so their economies are less rigorously checked than its is.
 - Sector 06 keeps its own background: it paints the world inline with no method to
   replace, so it takes the sprite towers, enemies, core and pads but not the themed
   terrain.

@@ -55,25 +55,86 @@ const BAL = {
 const TOWERS = {
   gun: {
     name: 'GUN TOWER', short: 'GUN', cost: 110, damage: 16, rate: 5.0, range: 160,
-    pierce: 0.15, projectile: 900, color: '#5fd0ff', accent: '#1b6fb8',
-    role: 'Rapid single-target fire. Cheap, and the backbone of every line.'
+    pierce: 0.15, projectile: 900, targets: 'both', color: '#5fd0ff', accent: '#1b6fb8',
+    role: 'Rapid single-target fire. Hits air. Cheap, and the backbone of every line.'
   },
   frost: {
     name: 'FROST COIL', short: 'FROST', cost: 170, damage: 12, rate: 2.0, range: 165,
-    pierce: 0, projectile: 860, slow: 0.34, slowTime: 2.0, color: '#8ef0ff', accent: '#1f8fbf',
-    role: 'Chills whatever it hits. Low damage, but it buys every other tower time.'
+    pierce: 0, projectile: 860, slow: 0.34, slowTime: 2.0, targets: 'both',
+    color: '#8ef0ff', accent: '#1f8fbf',
+    role: 'Chills whatever it hits, ground or air. Low damage, but it buys time.'
   },
   cannon: {
     name: 'SIEGE MORTAR', short: 'MORTAR', cost: 240, damage: 78, rate: 0.80, range: 205,
-    pierce: 0.55, projectile: 430, splash: 64, color: '#ffab45', accent: '#c9611b',
-    role: 'Lobs shells at a predicted spot. Splash damage, and it shreds armour.'
+    pierce: 0.55, projectile: 430, splash: 64, targets: 'ground',
+    color: '#ffab45', accent: '#c9611b',
+    role: 'Lobs shells at a predicted spot. Splash and armour-shred — but it cannot reach air.'
   },
   arc: {
     name: 'ARC SPIRE', short: 'ARC', cost: 300, damage: 38, rate: 1.5, range: 180,
-    pierce: 0.30, chains: 3, chainRange: 95, chainFalloff: 0.72,
+    pierce: 0.30, chains: 3, chainRange: 95, chainFalloff: 0.72, targets: 'both',
     color: '#c08dff', accent: '#6a2fc0',
-    role: 'Lightning jumps between packed enemies. Worthless against a lone target.'
+    role: 'Lightning jumps between packed enemies, ground or air. Worthless against a lone target.'
+  },
+  flak: {
+    name: 'FLAK BATTERY', short: 'FLAK', cost: 200, damage: 44, rate: 2.4, range: 215,
+    pierce: 0.20, projectile: 1000, splash: 46, splashAir: true, targets: 'air',
+    color: '#ffd66b', accent: '#b8860b',
+    role: 'Air only. Bursting shells that shred a formation of fliers — and cannot touch the ground.'
+  },
+  rail: {
+    name: 'RAIL LANCE', short: 'RAIL', cost: 420, damage: 260, rate: 0.42, range: 320,
+    pierce: 1.0, projectile: 1600, beam: 44, targets: 'both',
+    color: '#bfe9ff', accent: '#4a7f9c',
+    role: 'Fires across half the map and punches through armour and everything behind it. Slow, and it hates crowds.'
+  },
+  void: {
+    name: 'VOID SPIRE', short: 'VOID', cost: 520, damage: 22, rate: 4.0, range: 170,
+    // A field tower's output is "damage x how many are standing in it". Three
+    // is the conservative figure every value calculation here assumes; a real
+    // crowd is worth more and an empty lane is worth nothing.
+    pierce: 0.45, aura: true, auraTargets: 3, slow: 0.30, slowTime: 0.6, targets: 'both',
+    color: '#ff5cc0', accent: '#8a1a5e',
+    role: 'Drags everything nearby into a collapsing field. No barrel, no aiming — it just grinds down whatever comes close.'
   }
+};
+
+/* Which towers a player has earned.
+ *
+ * The first four are the game; the rest are the reward for playing it. Keeping
+ * the rule here rather than in the UI means the balance simulator gates its
+ * scripted player exactly the way a real account is gated, so the curve it
+ * reports is the curve a first-time player meets. */
+const UNLOCKS = {
+  gun:    { from: 'start' },
+  frost:  { from: 'start' },
+  cannon: { from: 'start' },
+  arc:    { from: 'start' },
+  // Air arrives in wave 6, so flak lands in the build phase right before it.
+  flak:   { from: 'wave',   wave: 5,   note: 'Survive wave 5 in any sector' },
+  rail:   { from: 'sector', sector: 2, note: 'Clear Sector 02 · Frostline Pass' },
+  void:   { from: 'sector', sector: 4, note: 'Clear Sector 04 · Black Tide Harbor' }
+};
+
+// The order the build menu and the number hotkeys use.
+const TOWER_ORDER = ['gun', 'frost', 'cannon', 'arc', 'flak', 'rail', 'void'];
+
+/* `progress` is { bestWave, cleared:Set } — whatever the caller knows. A fresh
+   account passes nothing and gets exactly the four starting families. */
+const isUnlocked = (type, progress = {}) => {
+  const rule = UNLOCKS[type];
+  if (!rule || rule.from === 'start') return true;
+  if (rule.from === 'wave') return (progress.bestWave || 0) >= rule.wave;
+  if (rule.from === 'sector') return !!(progress.cleared && progress.cleared.has(rule.sector));
+  return false;
+};
+
+/* Which enemies a tower may shoot at. Three of the four ground families can
+   engage air, so a player who never builds flak is inconvenienced rather than
+   hard-locked; flak is simply far more efficient at it. */
+const canTarget = (stats, enemy) => {
+  const t = stats.targets || 'ground';
+  return enemy.flying ? (t === 'air' || t === 'both') : (t === 'ground' || t === 'both');
 };
 
 const ENEMIES = {
@@ -81,7 +142,25 @@ const ENEMIES = {
   scout:   { name: 'SCOUT',      hp: 32,   speed: 112, armor: 0,   reward: 6,   damage: 1,  size: 9,  color: '#8bf05a' },
   armored: { name: 'ARMOURED',   hp: 130,  speed: 48, armor: 0.42, reward: 11,  damage: 2,  size: 13, color: '#2aa05a' },
   heavy:   { name: 'HEAVY',      hp: 430,  speed: 33, armor: 0.22, reward: 23,  damage: 5,  size: 18, color: '#1c7a45' },
-  boss:    { name: 'SAND TITAN', hp: 12000, speed: 25, armor: 0.35, reward: 450, damage: 30, size: 32, color: '#0f5c35', noScale: true }
+  // Fliers ignore the road entirely: they cross the map in a straight line, so
+  // a defence packed around a far corner of the route never sees them.
+  drone:   { name: 'DRONE',      hp: 44,   speed: 96, armor: 0,    reward: 8,   damage: 2,  size: 10, color: '#4fe0cf',
+             flying: true, altitude: 34 },
+  gunship: { name: 'GUNSHIP',    hp: 430,  speed: 42, armor: 0.18, reward: 30,  damage: 6,  size: 17, color: '#2fb9b0',
+             flying: true, altitude: 44 },
+  // The tanker: no armour to pierce, just a wall of health that has to be
+  // ground down while everything else in the wave walks past it.
+  brute:   { name: 'BRUTE',      hp: 1000, speed: 26, armor: 0.30, reward: 55,  damage: 9,  size: 22, color: '#175f38' },
+  // The boss is not one long health bar: it sheds plating and calls in help at
+  // fixed thresholds, so the fight changes shape twice before it ends.
+  boss:    { name: 'SAND TITAN', hp: 12000, speed: 25, armor: 0.38, reward: 450, damage: 30, size: 32,
+             color: '#0f5c35', noScale: true,
+             phases: [
+               { at: 0.66, name: 'PLATING SHED',  speed: 1.30, armor: 0.26, size: 1.0,
+                 escorts: ['armored', 'armored', 'armored'] },
+               { at: 0.33, name: 'CORE EXPOSED',  speed: 1.65, armor: 0.14, size: 0.92,
+                 escorts: ['gunship', 'drone', 'drone', 'drone'] }
+             ] }
 };
 
 const g = (type, count, interval = 0.42, gap = 0) => ({ type, count, interval, gap });
@@ -92,21 +171,25 @@ const WAVES = [
   [g('grunt', 12, 0.58), g('scout', 4, 0.50, 1.4)],
   [g('grunt', 16, 0.54), g('scout', 6, 0.46, 1.2)],
   [g('grunt', 14, 0.52), g('armored', 3, 0.80, 1.6)],
-  [g('grunt', 18, 0.48), g('scout', 8, 0.42, 1.2)],
+  // Air debuts small and alone, so the lesson lands before it costs anything.
+  [g('grunt', 18, 0.48), g('drone', 5, 0.66, 1.6)],
   [g('grunt', 16, 0.48), g('armored', 5, 0.72, 1.4)],
   [g('grunt', 20, 0.44), g('scout', 10, 0.40, 1.0), g('armored', 4, 0.70, 1.0)],
-  [g('grunt', 18, 0.44), g('heavy', 2, 1.10, 1.8)],
+  [g('grunt', 18, 0.44), g('heavy', 2, 1.10, 1.8), g('drone', 4, 0.62, 1.2)],
   [g('grunt', 22, 0.42), g('armored', 8, 0.62, 1.0)],
-  [g('grunt', 20, 0.40), g('scout', 14, 0.36, 1.0), g('armored', 5, 0.64, 1.0)],
+  [g('grunt', 26, 0.38), g('scout', 18, 0.34, 1.0), g('drone', 12, 0.48, 1.0)],
   [g('grunt', 24, 0.40), g('heavy', 3, 1.00, 1.4)],
-  [g('grunt', 22, 0.38), g('scout', 16, 0.34, 0.9), g('armored', 8, 0.58, 0.9)],
+  // The first tanker arrives with an escort that punishes tunnel vision.
+  [g('grunt', 22, 0.38), g('brute', 1, 1.20, 1.6), g('scout', 12, 0.34, 0.9), g('armored', 3, 0.58, 0.9)],
   [g('grunt', 26, 0.36), g('armored', 10, 0.56, 1.0), g('heavy', 3, 0.95, 1.0)],
-  [g('grunt', 24, 0.36), g('scout', 18, 0.32, 0.9), g('heavy', 5, 0.90, 1.0)],
-  [g('grunt', 28, 0.34), g('scout', 12, 0.32, 0.9), g('armored', 12, 0.52, 0.9)],
-  [g('grunt', 24, 0.34), g('armored', 7, 0.54, 0.9), g('heavy', 5, 0.85, 0.9)],
-  [g('grunt', 26, 0.32), g('scout', 18, 0.30, 0.8), g('armored', 11, 0.50, 0.8)],
-  [g('grunt', 26, 0.30), g('scout', 16, 0.30, 0.8), g('armored', 11, 0.48, 0.8), g('heavy', 5, 0.80, 0.8)],
-  [g('boss', 1, 1.0), g('grunt', 24, 0.34, 2.0), g('armored', 8, 0.52, 1.0), g('heavy', 5, 0.85, 1.0)]
+  [g('grunt', 24, 0.36), g('drone', 14, 0.40, 0.9), g('gunship', 2, 1.15, 1.4), g('heavy', 3, 0.92, 1.0)],
+  [g('grunt', 26, 0.34), g('scout', 12, 0.32, 0.9), g('armored', 7, 0.52, 0.9), g('brute', 1, 1.10, 1.0)],
+  [g('grunt', 24, 0.34), g('armored', 7, 0.54, 0.9), g('heavy', 5, 0.85, 0.9), g('gunship', 1, 1.10, 1.0)],
+  [g('grunt', 24, 0.32), g('scout', 12, 0.30, 0.8), g('drone', 16, 0.38, 0.8), g('brute', 1, 1.05, 1.0), g('armored', 6, 0.50, 0.9)],
+  [g('grunt', 24, 0.30), g('scout', 14, 0.30, 0.8), g('armored', 11, 0.48, 0.8), g('heavy', 4, 0.80, 0.8),
+   g('gunship', 2, 1.00, 1.0)],
+  [g('boss', 1, 1.0), g('grunt', 20, 0.34, 2.0), g('armored', 8, 0.52, 1.0), g('brute', 1, 1.05, 1.0),
+   g('gunship', 2, 1.05, 1.0)]
 ].map((groups, i) => ({
   groups,
   bonus: 55 + i * 9,
@@ -143,12 +226,16 @@ const towerStats = (type, level) => {
     gun:    1 + (META.gunLevel || 0) * 0.05 + (META.gun2 || 0) * 0.06,
     cannon: 1 + (META.cannonLevel || 0) * 0.06 + (META.cannon2 || 0) * 0.05,
     frost:  1 + (META.freeze2 || 0) * 0.06,
-    arc:    1 + (META.arcLevel || 0) * 0.07 + (META.arc2 || 0) * 0.08
+    arc:    1 + (META.arcLevel || 0) * 0.07 + (META.arc2 || 0) * 0.08,
+    flak:   1 + (META.flakLevel || 0) * 0.06,
+    rail:   1 + (META.railLevel || 0) * 0.07,
+    void:   1 + (META.voidLevel || 0) * 0.07
   }[type] || 1;
   const rangeBonus = {
     gun: META.gunLevel >= 3 ? 1.08 : 1,
     frost: META.freezeLevel >= 3 ? 1.10 : 1,
-    cannon: 1, arc: 1
+    void: 1 + (META.voidLevel || 0) * 0.05,
+    cannon: 1, arc: 1, flak: 1, rail: 1
   }[type] || 1;
   return {
     ...b,
@@ -156,7 +243,11 @@ const towerStats = (type, level) => {
     damage: b.damage * (1 + n * BAL.damagePerLevel) * research,
     rate: b.rate * (1 + n * BAL.ratePerLevel) * (type === 'gun' && META.gunLevel >= 3 ? 1.12 : 1),
     range: b.range * (1 + n * BAL.rangePerLevel) * rangeBonus,
-    splash: b.splash ? b.splash + n * BAL.splashPerLevel + (META.cannonLevel || 0) * 4 : 0,
+    splash: b.splash
+      ? (b.splash + n * BAL.splashPerLevel + (META.cannonLevel || 0) * 4) *
+        (type === 'flak' ? 1 + (META.flakLevel || 0) * 0.07 : 1)
+      : 0,
+    beam: b.beam ? b.beam * (1 + n * 0.08) * (1 + (META.railLevel || 0) * 0.06) : 0,
     slow: b.slow
       ? Math.min(BAL.maxSlow, b.slow + n * BAL.slowPerLevel + (META.freezeLevel || 0) * 0.04)
       : 0,
@@ -179,7 +270,8 @@ const dpsOf = (type, level, armor = 0) => {
   const s = towerStats(type, level);
   const perHit = damageAfterArmor(s.damage, armor, s.pierce);
   const chainMul = s.chains ? 1 + s.chains * (TOWERS[type].chainFalloff || 0.7) : 1;
-  return perHit * s.rate * chainMul;
+  const auraMul = s.aura ? (s.auraTargets || 3) : 1;
+  return perHit * s.rate * chainMul * auraMul;
 };
 
 const startGold = () => Math.max(100, BAL.startGold + (META.startGold || 0));
@@ -205,15 +297,16 @@ const waveSpawnSeconds = i => {
   return t;
 };
 
+let _pathLength = 0;
 const pathLength = () => {
+  if (_pathLength) return _pathLength;
   let d = 0;
   for (let i = 1; i < MAP.path.length; i++)
     d += Math.hypot(MAP.path[i][0] - MAP.path[i - 1][0], MAP.path[i][1] - MAP.path[i - 1][1]);
-  return d;
+  return (_pathLength = d);
 };
 /*--FUN-TD-DATA-END--*/
 
-const TOWER_ORDER = ['gun', 'frost', 'cannon', 'arc'];
 const TARGET_MODES = [
   { id: 'first',  label: 'FIRST',    hint: 'closest to the base' },
   { id: 'last',   label: 'LAST',     hint: 'furthest from the base' },
@@ -349,6 +442,22 @@ class Enemy {
     this.hitFlash = 0;
     this.walk = Math.random() * Math.PI * 2;
     this.lane = (Math.random() * 2 - 1) * 11;
+    this.phase = 0;
+    this.baseSpeed = this.speed;
+    this.baseSize = this.size;
+    if (this.flying) {
+      // Fliers launch from the spawn point but strike straight at the core,
+      // spread across a band so a formation does not stack into one pixel.
+      const span = (Math.random() * 2 - 1) * 70;
+      const dx = MAP.base.x - this.x, dy = MAP.base.y - this.y;
+      const d = Math.hypot(dx, dy) || 1;
+      this.x += -dy / d * span;
+      this.y += dx / d * span;
+      this.flightLength = Math.hypot(MAP.base.x - this.x, MAP.base.y - this.y);
+      this.angle = Math.atan2(MAP.base.y - this.y, MAP.base.x - this.x);
+      this.bob = Math.random() * Math.PI * 2;
+      this.lane = 0;
+    }
   }
 
   update(dt) {
@@ -356,6 +465,9 @@ class Enemy {
     if (this.hitFlash > 0) this.hitFlash -= dt;
     let travel = this.speed * (1 - this.slow) * dt;
     this.walk += travel * 0.09;
+
+    if (this.flying) return this.fly(travel, dt);
+
     while (travel > 0 && this.segment < MAP.path.length - 1) {
       const b = MAP.path[this.segment + 1];
       const dx = b[0] - this.x, dy = b[1] - this.y, d = Math.hypot(dx, dy);
@@ -368,6 +480,22 @@ class Enemy {
       }
     }
     return this.segment >= MAP.path.length - 1;
+  }
+
+  /* Straight-line flight to the core. `travelled` is reported on the same
+     scale as a ground unit's road distance so the target-priority modes
+     ('first', 'last') stay meaningful in a mixed wave. */
+  fly(travel, dt) {
+    this.bob += dt * 5.5;
+    const dx = MAP.base.x - this.x, dy = MAP.base.y - this.y;
+    const d = Math.hypot(dx, dy);
+    if (d <= travel || d < 6) { this.x = MAP.base.x; this.y = MAP.base.y; return true; }
+    this.angle = Math.atan2(dy, dx);
+    this.x += dx / d * travel;
+    this.y += dy / d * travel;
+    const flown = Math.max(0, (this.flightLength || d) - d);
+    this.travelled = flown / (this.flightLength || d) * pathLength();
+    return false;
   }
 }
 
@@ -386,6 +514,8 @@ class Tower {
     this.damageDealt = 0;
     this.arc = null;      // transient chain-lightning polyline for the renderer
     this.arcLife = 0;
+    this.beam = null;     // transient rail-lance line, same idea
+    this.beamLife = 0;
   }
 
   get stats() { return towerStats(this.type, this.level); }
@@ -395,6 +525,7 @@ class Tower {
     this.recoil = Math.max(0, this.recoil - dt * 7);
     this.pulse = Math.max(0, this.pulse - dt);
     if (this.arcLife > 0) { this.arcLife -= dt; if (this.arcLife <= 0) this.arc = null; }
+    if (this.beamLife > 0) { this.beamLife -= dt; if (this.beamLife <= 0) this.beam = null; }
   }
 
   canFire() { return this.cooldown <= 0; }
@@ -409,6 +540,7 @@ class Projectile {
     this.damage = stats.damage;
     this.pierce = stats.pierce || 0;
     this.splash = stats.splash || 0;
+    this.splashAir = !!stats.splashAir;
     this.slow = stats.slow || 0;
     this.slowTime = stats.slowTime || 0;
     this.type = type;
@@ -584,7 +716,10 @@ class Game {
     if (k === 'm') { this.el.sound.click(); return; }
     const pad = this.selectedPad;
     if (!pad) return;
-    if (!pad.tower && '1234'.includes(k)) this.build(pad, TOWER_ORDER[+k - 1]);
+    if (!pad.tower && '1234567'.includes(k)) {
+      const type = TOWER_ORDER[+k - 1];
+      if (type && isUnlocked(type, this.unlockState())) this.build(pad, type);
+    }
     else if (pad.tower && k === 'u') this.upgrade(pad);
     else if (pad.tower && k === 's') this.sell(pad);
     else if (pad.tower && k === 't') this.cycleMode(pad);
@@ -655,11 +790,17 @@ class Game {
     if (!host) return;
     if (this.phase !== 'build' || !WAVES[this.waveIndex]) { host.innerHTML = ''; host.classList.remove('show'); return; }
     const rows = waveIntel(this.waveIndex).map(r =>
-      `<span class="intel-unit" data-unit="${r.type}"><i style="--c:${ENEMIES[r.type].color}"></i>${r.name}<b>×${r.count}</b></span>`
+      `<span class="intel-unit${ENEMIES[r.type].flying ? ' air' : ''}" data-unit="${r.type}">` +
+      `<i style="--c:${ENEMIES[r.type].color}"></i>${ENEMIES[r.type].flying ? '▲ ' : ''}${r.name}<b>×${r.count}</b></span>`
     ).join('');
     const hp = Math.round(waveEffectiveHp(this.waveIndex));
+    // An air wave punishes a line with no anti-air far harder than a bigger
+    // ground wave would, so it is called out rather than left to be inferred.
+    const air = waveIntel(this.waveIndex).some(r => ENEMIES[r.type].flying);
     host.innerHTML =
-      `<div class="intel-head">NEXT WAVE ${this.waveIndex + 1} <em>${hp.toLocaleString('en-US')} effective HP</em></div>` +
+      `<div class="intel-head">NEXT WAVE ${this.waveIndex + 1}` +
+      (air ? ' <b class="intel-air">AIR</b>' : '') +
+      ` <em>${hp.toLocaleString('en-US')} effective HP</em></div>` +
       `<div class="intel-units">${rows}</div>`;
     host.classList.add('show');
   }
@@ -680,9 +821,32 @@ class Game {
 
   /* ------------------------------------------------------------ build menu */
 
+  /* What the account has earned, asked once per menu rather than per card. */
+  unlockState() {
+    const U = window.FUN_TD_UNLOCKS;
+    // Progress is account-wide, but a tower earned partway through this run
+    // has to be buildable in this run: fold the current wave in.
+    const p = U ? U.progress() : { bestWave: 0, cleared: new Set() };
+    p.bestWave = Math.max(p.bestWave, this.waveIndex);
+    return p;
+  }
+
   buildMenu(pad) {
+    const progress = this.unlockState();
     const cards = TOWER_ORDER.map((key, i) => {
       const t = TOWERS[key];
+      if (!isUnlocked(key, progress)) {
+        const note = (window.FUN_TD_UNLOCKS && window.FUN_TD_UNLOCKS.requirement(key)) ||
+          (UNLOCKS[key] && UNLOCKS[key].note) || 'Keep playing the campaign';
+        return `<button class="tcard locked" data-locked="${key}" disabled>
+          <span class="tcard-key">🔒</span>
+          <span class="tcard-art" style="--c:${t.color};--a:${t.accent}"></span>
+          <span class="tcard-name">${t.name}</span>
+          <span class="tcard-tags"><span class="tag lock">LOCKED</span></span>
+          <span class="tcard-role">${note}</span>
+          <span class="tcard-cost">● ${t.cost}</span>
+        </button>`;
+      }
       const afford = this.gold >= t.cost;
       const dps = Math.round(dpsOf(key, 1));
       const tags = [
@@ -693,6 +857,11 @@ class Game {
       if (t.slow) tags.push('<span class="tag cold">SLOW</span>');
       if (t.chains) tags.push('<span class="tag arc">CHAIN</span>');
       if (t.pierce >= 0.3) tags.push('<span class="tag pierce">ARMOUR</span>');
+      // The ground/air line decides whether a tower is useful at all in a
+      // given wave, so it is the first thing the card says.
+      if (t.targets === 'air') tags.unshift('<span class="tag air">AIR ONLY</span>');
+      else if (t.targets === 'both') tags.unshift('<span class="tag air">HITS AIR</span>');
+      else tags.unshift('<span class="tag ground">GROUND ONLY</span>');
       return `<button class="tcard" data-build="${key}" data-tower="${key}" ${afford ? '' : 'disabled'}>
         <span class="tcard-key">${i + 1}</span>
         <span class="tcard-art" style="--c:${t.color};--a:${t.accent}"></span>
@@ -784,6 +953,13 @@ class Game {
 
   build(pad, type) {
     if (!type || !TOWERS[type]) return;
+    // Every build path funnels through here, so this is the one place the
+    // unlock rule has to hold — menu, hotkey, or anything added later.
+    if (!isUnlocked(type, this.unlockState())) {
+      Sound.play('deny');
+      this.toast(`${TOWERS[type].name} IS LOCKED`);
+      return;
+    }
     const cost = TOWERS[type].cost;
     if (pad.tower) return;
     if (this.gold < cost) { Sound.play('deny'); this.toast('NOT ENOUGH GOLD'); return; }
@@ -898,6 +1074,7 @@ class Game {
     let best = null, bestScore = -Infinity;
     for (const e of this.enemies) {
       if (!e.active) continue;
+      if (!canTarget(stats, e)) continue;
       const d = Math.hypot(e.x - tower.x, e.y - tower.y);
       if (d > stats.range) continue;
       let score;
@@ -920,6 +1097,19 @@ class Game {
     const muzzleX = tower.x + Math.cos(tower.angle) * 26;
     const muzzleY = tower.y + Math.sin(tower.angle) * 26;
 
+    if (s.aura) {
+      // No projectile and no aiming: a void spire grinds down everything
+      // standing in its field, which is why its range is the shortest here.
+      this.field(tower, s);
+      Sound.play('zap', 80);
+      this.ring(tower.x, tower.y, '#ff5cc0', 0.22, s.range * 0.55, s.range);
+      return;
+    }
+    if (s.beam) {
+      this.lance(tower, target, s);
+      Sound.play('shot', 25);
+      return;
+    }
     if (tower.type === 'arc') {
       this.chain(tower, target, s);
       Sound.play('zap', 55);
@@ -955,7 +1145,7 @@ class Game {
       damage *= TOWERS.arc.chainFalloff;
       let next = null, bestD = stats.chainRange;
       for (const e of this.enemies) {
-        if (!e.active || hit.has(e)) continue;
+        if (!e.active || hit.has(e) || !canTarget(stats, e)) continue;
         const d = Math.hypot(e.x - current.x, e.y - current.y);
         if (d < bestD) { bestD = d; next = e; }
       }
@@ -965,13 +1155,81 @@ class Game {
     tower.arcLife = 0.13;
   }
 
+  /* A rail lance fires a line, not a shot: everything within `beam` pixels of
+     the segment from the muzzle to the edge of range takes the hit, so a
+     column walking the road is punished and a single scattered flier is not. */
+  lance(tower, target, s) {
+    const x2 = tower.x + Math.cos(tower.angle) * s.range;
+    const y2 = tower.y + Math.sin(tower.angle) * s.range;
+    const dx = x2 - tower.x, dy = y2 - tower.y, len2 = dx * dx + dy * dy || 1;
+    for (const e of this.enemies) {
+      if (!e.active || !canTarget(s, e)) continue;
+      const t = clamp(((e.x - tower.x) * dx + (e.y - tower.y) * dy) / len2, 0, 1);
+      const d = Math.hypot(e.x - (tower.x + dx * t), e.y - (tower.y + dy * t));
+      if (d <= s.beam + e.size) this.damage(e, s.damage, s.pierce, tower);
+    }
+    tower.beam = { x1: tower.x, y1: tower.y, x2, y2 };
+    tower.beamLife = 0.16;
+    this.burst(tower.x + Math.cos(tower.angle) * 30, tower.y + Math.sin(tower.angle) * 30, s.color, 10);
+  }
+
+  /* The void spire's pulse. It hits both layers by design: the tower has no
+     barrel to elevate, so there is nothing for a flier to fly over. */
+  field(tower, s) {
+    for (const e of this.enemies) {
+      if (!e.active) continue;
+      if (Math.hypot(e.x - tower.x, e.y - tower.y) > s.range) continue;
+      if (s.slow) { e.slow = Math.max(e.slow, s.slow); e.slowTime = Math.max(e.slowTime, s.slowTime); }
+      this.damage(e, s.damage, s.pierce, tower);
+    }
+  }
+
   damage(enemy, raw, pierce, tower) {
     if (!enemy.active) return;
     const dealt = Math.max(1, damageAfterArmor(raw, enemy.armor, pierce));
     enemy.hp -= dealt;
     enemy.hitFlash = 0.09;
     if (tower) tower.damageDealt += Math.round(Math.min(dealt, enemy.hp + dealt));
-    if (enemy.hp <= 0) this.kill(enemy, tower);
+    if (enemy.hp <= 0) { this.kill(enemy, tower); return; }
+    if (enemy.phases) this.checkPhase(enemy);
+  }
+
+  /* A phased enemy re-reads its own stats when its health crosses a threshold.
+     Every change is applied off the *base* value rather than compounding, so
+     the thresholds stay independent of the order they happen to fire in. */
+  checkPhase(e) {
+    const pct = e.hp / e.maxHp;
+    while (e.phase < e.phases.length && pct <= e.phases[e.phase].at) {
+      const p = e.phases[e.phase++];
+      e.speed = e.baseSpeed * (p.speed || 1);
+      if (p.armor !== undefined) e.armor = p.armor;
+      if (p.size) e.size = e.baseSize * p.size;
+      for (const type of p.escorts || []) this.escort(type, e);
+      this.banner = { text: `${e.name}: ${p.name}`, life: 1.3, color: '#ff8a5a' };
+      this.ring(e.x, e.y, '#ff8a5a', 0.55, 14, 120);
+      this.burst(e.x, e.y, '#ffb24b', 34);
+      this.shake = Math.max(this.shake, 12);
+      Sound.play('boom', 40);
+    }
+  }
+
+  /* Escorts join the fight where their parent is standing, not back at the
+     spawn point — otherwise calling for help would be a reward, not a threat. */
+  escort(type, parent) {
+    const e = new Enemy(type, this.waveIndex);
+    // A walking escort falls in beside the boss. A flying one comes in from
+    // the spawn point and has to cross the map: air already ignores the route,
+    // and dropping a flight on top of the core is not a phase change, it is an
+    // unanswerable one.
+    if (!e.flying) {
+      e.x = parent.x; e.y = parent.y;
+      e.segment = parent.segment;
+      e.travelled = parent.travelled;
+      e.angle = parent.angle;
+    }
+    this.enemies.push(e);
+    this.waveTotal++;
+    return e;
   }
 
   hit(p) {
@@ -981,7 +1239,9 @@ class Game {
       this.shake = Math.max(this.shake, 5);
       Sound.play('boom', 60);
       for (const e of this.enemies) {
-        if (!e.active) continue;
+        // A mortar shell bursts on the ground and a flak shell bursts in the
+        // air; neither reaches the other layer just because it landed nearby.
+        if (!e.active || !!e.flying !== !!p.splashAir) continue;
         const d = Math.hypot(e.x - p.x, e.y - p.y);
         if (d > p.splash) continue;
         // Full damage at the centre, 45% at the rim.
@@ -1144,9 +1404,13 @@ class Game {
       this.drawRange(c, this.selectedPad.tower);
 
     for (const pad of this.pads) if (!pad.tower) this.drawPad(c, pad);
-    for (const e of this.enemies) if (e.active) this.drawEnemy(c, e);
+    // Ground units pass behind the towers and fliers pass over them: the
+    // layering is the same information the shadow gap gives, said twice.
+    for (const e of this.enemies) if (e.active && !e.flying) this.drawEnemy(c, e);
     for (const t of this.towers) this.drawTower(c, t);
+    for (const e of this.enemies) if (e.active && e.flying) this.drawEnemy(c, e);
     for (const t of this.towers) if (t.arc) this.drawArc(c, t);
+    for (const t of this.towers) if (t.beam) this.drawBeam(c, t);
     for (const p of this.projectiles) if (p.active) this.drawProjectile(c, p);
 
     for (const q of this.particles) {
@@ -1328,6 +1592,18 @@ class Game {
     c.restore();
   }
 
+  drawBeam(c, t) {
+    const b = t.beam, a = Math.max(0, t.beamLife / 0.16);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    for (const [w, col, alpha] of [[16, '#4aa8ff', 0.20], [7, '#bfe9ff', 0.55], [2.5, '#ffffff', 0.9]]) {
+      c.globalAlpha = a * alpha;
+      c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(b.x1, b.y1); c.lineTo(b.x2, b.y2); c.stroke();
+    }
+    c.restore();
+  }
+
   drawEnemy(c, e) {
     const ox = Math.cos(e.angle + Math.PI / 2) * e.lane;
     const oy = Math.sin(e.angle + Math.PI / 2) * e.lane;
@@ -1371,8 +1647,8 @@ function boot() {
     window.funTDGame = new Game();
     // Published for the art layer, the balance simulator and the tests.
     window.FUN_TD_MODEL = {
-      MAP, BAL, TOWERS, ENEMIES, WAVES, TOWER_ORDER, TARGET_MODES,
-      towerStats, upgradeCost, investedAt, dpsOf, damageAfterArmor,
+      MAP, BAL, TOWERS, ENEMIES, WAVES, TOWER_ORDER, TARGET_MODES, UNLOCKS, isUnlocked,
+      towerStats, upgradeCost, investedAt, dpsOf, damageAfterArmor, canTarget,
       enemyStats, waveIntel, waveEffectiveHp, waveSpawnSeconds, countWave, pathLength
     };
   } catch (err) {

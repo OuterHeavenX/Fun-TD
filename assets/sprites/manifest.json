@@ -115,11 +115,29 @@
       "pixelsPerUnit": 110.345,
       "size": 320
     },
+    "enemy_brute": {
+      "file": "enemy_brute.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 106.667,
+      "size": 224
+    },
+    "enemy_drone": {
+      "file": "enemy_drone.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 94.118,
+      "size": 160
+    },
     "enemy_grunt": {
       "file": "enemy_grunt.png",
       "note": "faces +X",
       "pixelsPerUnit": 94.118,
       "size": 160
+    },
+    "enemy_gunship": {
+      "file": "enemy_gunship.png",
+      "note": "faces +X",
+      "pixelsPerUnit": 104.0,
+      "size": 208
     },
     "enemy_heavy": {
       "file": "enemy_heavy.png",
@@ -156,6 +174,54 @@
       "note": "faces +X",
       "pixelsPerUnit": 96.0,
       "size": 192
+    },
+    "flak_base_l1": {
+      "file": "flak_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "flak_base_l2": {
+      "file": "flak_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "flak_base_l3": {
+      "file": "flak_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "flak_base_l4": {
+      "file": "flak_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "flak_turret_l1": {
+      "file": "flak_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "flak_turret_l2": {
+      "file": "flak_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "flak_turret_l3": {
+      "file": "flak_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "flak_turret_l4": {
+      "file": "flak_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
     },
     "frost_base_l1": {
       "file": "frost_base_l1.png",
@@ -276,6 +342,102 @@
       "note": "static",
       "pixelsPerUnit": 84.211,
       "size": 160
+    },
+    "rail_base_l1": {
+      "file": "rail_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_base_l2": {
+      "file": "rail_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_base_l3": {
+      "file": "rail_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_base_l4": {
+      "file": "rail_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l1": {
+      "file": "rail_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l2": {
+      "file": "rail_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l3": {
+      "file": "rail_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l4": {
+      "file": "rail_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l1": {
+      "file": "void_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l2": {
+      "file": "void_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l3": {
+      "file": "void_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l4": {
+      "file": "void_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l1": {
+      "file": "void_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l2": {
+      "file": "void_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l3": {
+      "file": "void_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l4": {
+      "file": "void_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
     }
   }
 }

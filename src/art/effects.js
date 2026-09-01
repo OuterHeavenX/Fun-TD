@@ -134,24 +134,44 @@ function render(c) {
 /* ------------------------------------------------------------------- events */
 
 const TINT = {
-  gun: '#ffe9a8', cannon: '#ffb35c', freeze: '#bff4ff', frost: '#bff4ff', arc: '#dcb0ff'
+  gun: '#ffe9a8', cannon: '#ffb35c', freeze: '#bff4ff', frost: '#bff4ff', arc: '#dcb0ff',
+  flak: '#ffe08a', rail: '#cfefff', void: '#ff9ada'
+};
+
+// How far down the barrel line the muzzle sits, and how big the flash is.
+const MUZZLE = {
+  cannon: { reach: 40, size: 'big' },
+  flak:   { reach: 34, size: 'big' },
+  rail:   { reach: 52, size: 'lance' },
+  void:   { reach: 0,  size: 'field' }
 };
 
 function onFire(tower) {
   const a = tower.angle || 0;
   const colour = TINT[tower.type] || '#ffe9a8';
-  const reach = tower.type === 'cannon' ? 40 : 28;
-  const x = tower.x + Math.cos(a) * reach;
-  const y = tower.y + Math.sin(a) * reach;
+  const muzzle = MUZZLE[tower.type] || { reach: 28, size: 'small' };
+  const x = tower.x + Math.cos(a) * muzzle.reach;
+  const y = tower.y + Math.sin(a) * muzzle.reach;
+
+  // A void spire has no barrel, so a muzzle flash would be a lie: it pulses.
+  if (muzzle.size === 'field') {
+    flash(tower.x, tower.y, 16, colour, 0.09);
+    for (let i = 0; i < 5; i++)
+      spark(tower.x, tower.y, rand(0, TAU), 0.9, rand(60, 150), colour, rand(0.12, 0.26), rand(1.6, 3));
+    return;
+  }
+
   // A radial bloom at the muzzle reads as a halo around the whole tower. A short
   // streak down the barrel line plus a tight core reads as a shot.
-  const big = tower.type === 'cannon';
-  streak(x, y, a, big ? 34 : 22, colour, 0.07, big ? 9 : 5);
-  streak(x, y, a, big ? 20 : 13, '#ffffff', 0.05, big ? 4 : 2.4);
-  flash(x, y, big ? 11 : 7, colour, 0.05);
-  const n = big ? 7 : 3;
+  const big = muzzle.size === 'big';
+  const lance = muzzle.size === 'lance';
+  streak(x, y, a, lance ? 60 : big ? 34 : 22, colour, lance ? 0.10 : 0.07, lance ? 7 : big ? 9 : 5);
+  streak(x, y, a, lance ? 40 : big ? 20 : 13, '#ffffff', 0.05, lance ? 3 : big ? 4 : 2.4);
+  flash(x, y, big ? 11 : lance ? 9 : 7, colour, 0.05);
+  const n = big ? 7 : lance ? 5 : 3;
   for (let i = 0; i < n; i++) spark(x, y, a, 0.34, rand(140, 300), colour, rand(0.09, 0.2), rand(1.6, 3));
-  if (tower.type === 'cannon') { shake = Math.max(shake, 2.2); }
+  if (big) shake = Math.max(shake, 2.2);
+  if (lance) shake = Math.max(shake, 3.4);
 }
 
 function onHit(x, y, kind, splash) {
@@ -172,7 +192,7 @@ function onHit(x, y, kind, splash) {
 function onKill(e) {
   const size = e.size || 11;
   const boss = e.type === 'boss';
-  const heavy = boss || e.type === 'heavy' || e.type === 'warden' || e.type === 'armored';
+  const heavy = boss || ['heavy', 'warden', 'armored', 'brute', 'gunship'].includes(e.type);
   const colour = e.color || '#8bf05a';
   flash(e.x, e.y, size * (boss ? 4 : 1.9), colour, boss ? 0.5 : 0.16);
   ring(e.x, e.y, size * 0.6, size * (boss ? 7 : heavy ? 3.4 : 2.4), colour, boss ? 0.75 : 0.3, boss ? 10 : 4);

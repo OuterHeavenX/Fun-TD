@@ -342,6 +342,102 @@
       "note": "static",
       "pixelsPerUnit": 84.211,
       "size": 160
+    },
+    "rail_base_l1": {
+      "file": "rail_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_base_l2": {
+      "file": "rail_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_base_l3": {
+      "file": "rail_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_base_l4": {
+      "file": "rail_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l1": {
+      "file": "rail_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l2": {
+      "file": "rail_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l3": {
+      "file": "rail_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "rail_turret_l4": {
+      "file": "rail_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l1": {
+      "file": "void_base_l1.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l2": {
+      "file": "void_base_l2.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l3": {
+      "file": "void_base_l3.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_base_l4": {
+      "file": "void_base_l4.png",
+      "note": "static platform, drawn unrotated",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l1": {
+      "file": "void_turret_l1.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l2": {
+      "file": "void_turret_l2.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l3": {
+      "file": "void_turret_l3.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
+    },
+    "void_turret_l4": {
+      "file": "void_turret_l4.png",
+      "note": "pivots at image centre, muzzle points +X",
+      "pixelsPerUnit": 82.581,
+      "size": 256
     }
   }
 }

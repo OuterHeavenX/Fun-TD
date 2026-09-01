@@ -561,3 +561,98 @@
 /* art-direction.css draws a hairline under every intro button; in a flat nav
    bar that reads as an underline on each tab. */
 #intro.modal section.home .home-nav > button:after { display: none; }
+
+/* ------------------------------------------------------- tower collection */
+
+#collectionOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
+  background: linear-gradient(#04122ff2, #020a1cfa);
+}
+#collectionOverlay.show { display: grid; }
+.collection-card {
+  width: min(94vw, 620px);
+  max-height: 92vh;
+  overflow: auto;
+  padding: 20px;
+  border-radius: 22px;
+  border: 3px solid #4a8fd5;
+  background: linear-gradient(#14263b, #0b1a2c);
+  box-shadow: 0 28px 70px #000c, inset 0 0 0 2px #ffffff0f;
+  color: #fff;
+}
+.collection-head { text-align: center; margin-bottom: 16px; }
+.collection-head small {
+  display: block;
+  color: #6fb9ff;
+  font: 800 11px/1 system-ui, sans-serif;
+  letter-spacing: 2.4px;
+}
+.collection-head h2 { margin: 5px 0 4px; font: 900 clamp(24px, 6vw, 34px)/1 system-ui, sans-serif; }
+.collection-head p { margin: 0; color: #a9bed2; font: 600 12px/1 system-ui, sans-serif; }
+
+.collection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 430px) { .collection-grid { grid-template-columns: 1fr; } }
+
+.collect-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  grid-template-areas: 'icon name' 'icon layer' 'text text' 'cost cost';
+  align-items: center;
+  gap: 3px 11px;
+  padding: 13px;
+  border-radius: 16px;
+  border: 2px solid #ffffff1c;
+  background: linear-gradient(#1d3350, #132337);
+}
+.collect-card i {
+  grid-area: icon;
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, var(--c), var(--a));
+  box-shadow: inset 0 0 0 2px #ffffff33, 0 3px 0 #0006;
+}
+.collect-card b { grid-area: name; font: 900 15px/1.1 system-ui, sans-serif; }
+.collect-layer {
+  grid-area: layer;
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #0b234a;
+  box-shadow: inset 0 0 0 1px #ffffff22;
+  color: #9fd0ff;
+  font: 800 9px/1.4 system-ui, sans-serif;
+  letter-spacing: 1px;
+}
+.collect-card p {
+  grid-area: text;
+  margin: 7px 0 0;
+  color: #bed0df;
+  font: 600 12px/1.4 system-ui, sans-serif;
+}
+.collect-card em {
+  grid-area: cost;
+  margin-top: 6px;
+  color: #ffd43b;
+  font: 800 13px/1 system-ui, sans-serif;
+  font-style: normal;
+}
+.collect-card.locked { filter: saturate(.35); opacity: .68; }
+.collect-card.locked .collect-layer { color: #7f93a8; }
+.collect-card.locked p { color: #9fd0ff; }
+
+.collection-foot { display: flex; justify-content: center; margin-top: 16px; }
+.collection-foot button {
+  padding: 11px 26px;
+  border: 2px solid #ffffff22;
+  border-radius: 13px;
+  background: #26384a;
+  color: #fff;
+  font: 800 13px/1 system-ui, sans-serif;
+  letter-spacing: 1px;
+}

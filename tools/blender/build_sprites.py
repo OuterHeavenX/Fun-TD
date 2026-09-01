@@ -263,6 +263,8 @@ PAL = {
     "frost":  {"hull": (0.08, 0.16, 0.22), "plate": (0.24, 0.42, 0.54), "trim": (0.12, 0.55, 0.76), "glow": (0.40, 0.86, 1.0)},
     "arc":    {"hull": (0.11, 0.08, 0.19), "plate": (0.26, 0.21, 0.42), "trim": (0.42, 0.16, 0.86), "glow": (0.66, 0.36, 1.0)},
     "flak":   {"hull": (0.16, 0.13, 0.06), "plate": (0.40, 0.34, 0.16), "trim": (0.86, 0.62, 0.10), "glow": (1.0, 0.82, 0.28)},
+    "rail":   {"hull": (0.10, 0.13, 0.15), "plate": (0.34, 0.41, 0.46), "trim": (0.70, 0.92, 1.0), "glow": (0.80, 0.96, 1.0)},
+    "void":   {"hull": (0.10, 0.05, 0.13), "plate": (0.28, 0.14, 0.34), "trim": (0.86, 0.16, 0.62), "glow": (1.0, 0.34, 0.80)},
 }
 
 STEEL = (0.30, 0.33, 0.36)
@@ -492,8 +494,95 @@ def turret_flak(level):
         box((0.26, 0.30, 0.14), (0.10, 0, 1.06), material=plate)
 
 
+def turret_rail(level):
+    """Unlockable long-range gun: one enormous accelerator down the +X axis.
+
+    Where the flak battery says "up", this says "far".  The whole model is a
+    single unbroken line from breech to muzzle, longer than any other turret
+    in the set, with the capacitor mass pulled back behind the pivot so the
+    barrel visibly outweighs its own mounting."""
+    p = PAL["rail"]
+    hull, plate = _yoke(p, width=0.50, length=0.40)
+    steel = mat("steel", (0.42, 0.47, 0.52), 0.92, 0.22)
+    trim = mat("trim", p["trim"], 0.20, 0.20, p["glow"], 1.4)
+    dark = mat("dark", DARK, 0.35, 0.58)
+
+    # Twin rails with a lit accelerator gap running between them.
+    for side in (-1, 1):
+        box((1.50, 0.09, 0.11), (0.52, side * 0.11, 0.64), material=steel)
+        box((0.14, 0.11, 0.13), (1.22, side * 0.11, 0.64), material=dark)
+    box((1.34, 0.05, 0.05), (0.48, 0, 0.64), material=trim)
+
+    # Breech and capacitor mass, counterweighted behind the pivot.
+    box((0.40, 0.40, 0.26), (-0.10, 0, 0.62), material=plate)
+    for side in (-1, 1):
+        cyl(0.13, 0.34, (-0.34, side * 0.20, 0.60), rot=(0, math.radians(90), 0), material=hull)
+        cyl(0.06, 0.36, (-0.34, side * 0.20, 0.60), rot=(0, math.radians(90), 0), material=trim)
+    box((0.20, 0.52, 0.14), (-0.52, 0, 0.62), material=plate)
+
+    if level >= 2:                                   # rangefinder mast
+        cyl(0.03, 0.24, (0.10, 0.26, 0.76), material=steel, bevel=0.004)
+        box((0.16, 0.07, 0.07), (0.16, 0.26, 0.88), material=trim)
+    if level >= 3:                                   # heat sinks along the rails
+        for side in (-1, 1):
+            for j in range(4):
+                box((0.06, 0.20, 0.14), (0.20 + j * 0.26, side * 0.11, 0.72), material=plate)
+    if level >= 4:                                   # second stage on the muzzle
+        for side in (-1, 1):
+            box((0.40, 0.08, 0.09), (1.44, side * 0.11, 0.64), material=steel)
+        ring(0.20, 0.05, (1.30, 0, 0.64), rot=(0, math.radians(90), 0), material=trim)
+        box((0.26, 0.36, 0.18), (-0.14, 0, 0.84), material=hull)
+
+
+def turret_void(level):
+    """Unlockable area denier: a caged singularity on a three-pronged claw.
+
+    It has no barrel at all, which is the point - among a set of guns, the one
+    silhouette with nothing pointing out of it reads instantly as "not a gun".
+    The claw is modelled *above* the orb rather than beside it, because from
+    directly overhead anything at the orb's own height is simply swallowed by
+    it, and the forward prong is longer than the other two so the tower still
+    has a facing at 40 pixels."""
+    p = PAL["void"]
+    hull, plate = _yoke(p, width=0.58, length=0.48)
+    core = mat("core", (0.90, 0.14, 0.60), 0.05, 0.12, p["glow"], 2.4)
+    trim = mat("trim", p["trim"], 0.25, 0.26, p["glow"], 1.1)
+    steel = mat("steel", (0.34, 0.29, 0.38), 0.88, 0.30)
+
+    cyl(0.34, 0.22, (0, 0, 0.52), verts=6, material=hull, bevel=0.03, smooth=False)
+    ball(0.26, (0, 0, 0.74), material=core)                    # the singularity
+
+    # Claw arms, rising over the orb and closing above it. Drawn last and
+    # highest so they stay on top of the glow instead of behind it.
+    for angle, reach in ((0, 0.86), (128, 0.62), (-128, 0.62)):
+        r = math.radians(angle)
+        for t, z, w in ((0.55, 0.72, 0.15), (0.92, 0.98, 0.12)):
+            box((reach * 0.62, w, 0.13), (math.cos(r) * reach * t, math.sin(r) * reach * t, z),
+                (0, math.radians(-30), r), material=steel)
+        ball(0.10, (math.cos(r) * reach, math.sin(r) * reach, 0.66), material=trim)
+    # The forward prong gets a lance tip so front and back never look alike.
+    cone(0.11, 0.02, 0.30, (1.02, 0, 0.66), (0, math.radians(96), 0), material=trim)
+
+    # Containment rings, tilted so they read as a cage rather than a plate.
+    ring(0.42, 0.045, (0, 0, 0.74), rot=(math.radians(62), 0, 0), material=steel)
+    ring(0.42, 0.045, (0, 0, 0.74), rot=(math.radians(62), 0, math.radians(90)), material=steel)
+
+    if level >= 2:
+        ring(0.52, 0.04, (0, 0, 0.74), material=trim)
+    if level >= 3:
+        polar(6, 0.56, math.radians(30),
+              lambda i, x, y, a: cyl(0.055, 0.22, (x, y, 0.58), material=trim, bevel=0.006))
+    if level >= 4:
+        # A wider outer ring, not a bigger ball: the orb must not grow enough
+        # to swallow the claw it is caged by.
+        ring(0.68, 0.05, (0, 0, 0.80), rot=(math.radians(24), 0, 0), material=trim)
+        for angle in (52, 180, -52):
+            r = math.radians(angle)
+            ball(0.09, (math.cos(r) * 0.68, math.sin(r) * 0.68, 0.88), material=core)
+
+
 TURRETS = {"gun": turret_gun, "cannon": turret_cannon, "frost": turret_frost,
-           "arc": turret_arc, "flak": turret_flak}
+           "arc": turret_arc, "flak": turret_flak, "rail": turret_rail, "void": turret_void}
 
 
 # --------------------------------------------------------------------- enemy
@@ -838,7 +927,7 @@ WORLD = {
 # ---------------------------------------------------------------------- main
 
 def main():
-    for kind in ("gun", "cannon", "frost", "arc", "flak"):
+    for kind in ("gun", "cannon", "frost", "arc", "flak", "rail", "void"):
         for level in (1, 2, 3, 4):
             build(f"{kind}_base_l{level}", 256,
                   lambda k=kind, l=level: tower_base(k, l),

@@ -13,7 +13,7 @@ const M = loadModel();
 test('the data block exposes the full model', () => {
   assert.equal(M.WAVES.length, 20);
   assert.ok(M.MAP.pads.length >= 10);
-  assert.deepEqual(Object.keys(M.TOWERS), ['gun', 'frost', 'cannon', 'arc', 'flak']);
+  assert.deepEqual(Object.keys(M.TOWERS), ['gun', 'frost', 'cannon', 'arc', 'flak', 'rail', 'void']);
   assert.ok(Object.keys(M.ENEMIES).includes('boss'));
   // Every tower declares which layer it can shoot, and at least one of each
   // side of that line exists — otherwise fliers are either free or trivial.

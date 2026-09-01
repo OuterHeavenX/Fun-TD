@@ -81,7 +81,52 @@ const TOWERS = {
     pierce: 0.20, projectile: 1000, splash: 46, splashAir: true, targets: 'air',
     color: '#ffd66b', accent: '#b8860b',
     role: 'Air only. Bursting shells that shred a formation of fliers — and cannot touch the ground.'
+  },
+  rail: {
+    name: 'RAIL LANCE', short: 'RAIL', cost: 420, damage: 260, rate: 0.42, range: 320,
+    pierce: 1.0, projectile: 1600, beam: 44, targets: 'both',
+    color: '#bfe9ff', accent: '#4a7f9c',
+    role: 'Fires across half the map and punches through armour and everything behind it. Slow, and it hates crowds.'
+  },
+  void: {
+    name: 'VOID SPIRE', short: 'VOID', cost: 520, damage: 22, rate: 4.0, range: 170,
+    // A field tower's output is "damage x how many are standing in it". Three
+    // is the conservative figure every value calculation here assumes; a real
+    // crowd is worth more and an empty lane is worth nothing.
+    pierce: 0.45, aura: true, auraTargets: 3, slow: 0.30, slowTime: 0.6, targets: 'both',
+    color: '#ff5cc0', accent: '#8a1a5e',
+    role: 'Drags everything nearby into a collapsing field. No barrel, no aiming — it just grinds down whatever comes close.'
   }
+};
+
+/* Which towers a player has earned.
+ *
+ * The first four are the game; the rest are the reward for playing it. Keeping
+ * the rule here rather than in the UI means the balance simulator gates its
+ * scripted player exactly the way a real account is gated, so the curve it
+ * reports is the curve a first-time player meets. */
+const UNLOCKS = {
+  gun:    { from: 'start' },
+  frost:  { from: 'start' },
+  cannon: { from: 'start' },
+  arc:    { from: 'start' },
+  // Air arrives in wave 6, so flak lands in the build phase right before it.
+  flak:   { from: 'wave',   wave: 5,   note: 'Survive wave 5 in any sector' },
+  rail:   { from: 'sector', sector: 2, note: 'Clear Sector 02 · Frostline Pass' },
+  void:   { from: 'sector', sector: 4, note: 'Clear Sector 04 · Black Tide Harbor' }
+};
+
+// The order the build menu and the number hotkeys use.
+const TOWER_ORDER = ['gun', 'frost', 'cannon', 'arc', 'flak', 'rail', 'void'];
+
+/* `progress` is { bestWave, cleared:Set } — whatever the caller knows. A fresh
+   account passes nothing and gets exactly the four starting families. */
+const isUnlocked = (type, progress = {}) => {
+  const rule = UNLOCKS[type];
+  if (!rule || rule.from === 'start') return true;
+  if (rule.from === 'wave') return (progress.bestWave || 0) >= rule.wave;
+  if (rule.from === 'sector') return !!(progress.cleared && progress.cleared.has(rule.sector));
+  return false;
 };
 
 /* Which enemies a tower may shoot at. Three of the four ground families can
@@ -181,12 +226,16 @@ const towerStats = (type, level) => {
     gun:    1 + (META.gunLevel || 0) * 0.05 + (META.gun2 || 0) * 0.06,
     cannon: 1 + (META.cannonLevel || 0) * 0.06 + (META.cannon2 || 0) * 0.05,
     frost:  1 + (META.freeze2 || 0) * 0.06,
-    arc:    1 + (META.arcLevel || 0) * 0.07 + (META.arc2 || 0) * 0.08
+    arc:    1 + (META.arcLevel || 0) * 0.07 + (META.arc2 || 0) * 0.08,
+    flak:   1 + (META.flakLevel || 0) * 0.06,
+    rail:   1 + (META.railLevel || 0) * 0.07,
+    void:   1 + (META.voidLevel || 0) * 0.07
   }[type] || 1;
   const rangeBonus = {
     gun: META.gunLevel >= 3 ? 1.08 : 1,
     frost: META.freezeLevel >= 3 ? 1.10 : 1,
-    cannon: 1, arc: 1
+    void: 1 + (META.voidLevel || 0) * 0.05,
+    cannon: 1, arc: 1, flak: 1, rail: 1
   }[type] || 1;
   return {
     ...b,
@@ -194,7 +243,11 @@ const towerStats = (type, level) => {
     damage: b.damage * (1 + n * BAL.damagePerLevel) * research,
     rate: b.rate * (1 + n * BAL.ratePerLevel) * (type === 'gun' && META.gunLevel >= 3 ? 1.12 : 1),
     range: b.range * (1 + n * BAL.rangePerLevel) * rangeBonus,
-    splash: b.splash ? b.splash + n * BAL.splashPerLevel + (META.cannonLevel || 0) * 4 : 0,
+    splash: b.splash
+      ? (b.splash + n * BAL.splashPerLevel + (META.cannonLevel || 0) * 4) *
+        (type === 'flak' ? 1 + (META.flakLevel || 0) * 0.07 : 1)
+      : 0,
+    beam: b.beam ? b.beam * (1 + n * 0.08) * (1 + (META.railLevel || 0) * 0.06) : 0,
     slow: b.slow
       ? Math.min(BAL.maxSlow, b.slow + n * BAL.slowPerLevel + (META.freezeLevel || 0) * 0.04)
       : 0,
@@ -217,7 +270,8 @@ const dpsOf = (type, level, armor = 0) => {
   const s = towerStats(type, level);
   const perHit = damageAfterArmor(s.damage, armor, s.pierce);
   const chainMul = s.chains ? 1 + s.chains * (TOWERS[type].chainFalloff || 0.7) : 1;
-  return perHit * s.rate * chainMul;
+  const auraMul = s.aura ? (s.auraTargets || 3) : 1;
+  return perHit * s.rate * chainMul * auraMul;
 };
 
 const startGold = () => Math.max(100, BAL.startGold + (META.startGold || 0));
@@ -253,7 +307,6 @@ const pathLength = () => {
 };
 /*--FUN-TD-DATA-END--*/
 
-const TOWER_ORDER = ['gun', 'frost', 'cannon', 'arc', 'flak'];
 const TARGET_MODES = [
   { id: 'first',  label: 'FIRST',    hint: 'closest to the base' },
   { id: 'last',   label: 'LAST',     hint: 'furthest from the base' },
@@ -461,6 +514,8 @@ class Tower {
     this.damageDealt = 0;
     this.arc = null;      // transient chain-lightning polyline for the renderer
     this.arcLife = 0;
+    this.beam = null;     // transient rail-lance line, same idea
+    this.beamLife = 0;
   }
 
   get stats() { return towerStats(this.type, this.level); }
@@ -470,6 +525,7 @@ class Tower {
     this.recoil = Math.max(0, this.recoil - dt * 7);
     this.pulse = Math.max(0, this.pulse - dt);
     if (this.arcLife > 0) { this.arcLife -= dt; if (this.arcLife <= 0) this.arc = null; }
+    if (this.beamLife > 0) { this.beamLife -= dt; if (this.beamLife <= 0) this.beam = null; }
   }
 
   canFire() { return this.cooldown <= 0; }
@@ -660,7 +716,10 @@ class Game {
     if (k === 'm') { this.el.sound.click(); return; }
     const pad = this.selectedPad;
     if (!pad) return;
-    if (!pad.tower && '12345'.includes(k)) this.build(pad, TOWER_ORDER[+k - 1]);
+    if (!pad.tower && '1234567'.includes(k)) {
+      const type = TOWER_ORDER[+k - 1];
+      if (type && isUnlocked(type, this.unlockState())) this.build(pad, type);
+    }
     else if (pad.tower && k === 'u') this.upgrade(pad);
     else if (pad.tower && k === 's') this.sell(pad);
     else if (pad.tower && k === 't') this.cycleMode(pad);
@@ -762,9 +821,32 @@ class Game {
 
   /* ------------------------------------------------------------ build menu */
 
+  /* What the account has earned, asked once per menu rather than per card. */
+  unlockState() {
+    const U = window.FUN_TD_UNLOCKS;
+    // Progress is account-wide, but a tower earned partway through this run
+    // has to be buildable in this run: fold the current wave in.
+    const p = U ? U.progress() : { bestWave: 0, cleared: new Set() };
+    p.bestWave = Math.max(p.bestWave, this.waveIndex);
+    return p;
+  }
+
   buildMenu(pad) {
+    const progress = this.unlockState();
     const cards = TOWER_ORDER.map((key, i) => {
       const t = TOWERS[key];
+      if (!isUnlocked(key, progress)) {
+        const note = (window.FUN_TD_UNLOCKS && window.FUN_TD_UNLOCKS.requirement(key)) ||
+          (UNLOCKS[key] && UNLOCKS[key].note) || 'Keep playing the campaign';
+        return `<button class="tcard locked" data-locked="${key}" disabled>
+          <span class="tcard-key">🔒</span>
+          <span class="tcard-art" style="--c:${t.color};--a:${t.accent}"></span>
+          <span class="tcard-name">${t.name}</span>
+          <span class="tcard-tags"><span class="tag lock">LOCKED</span></span>
+          <span class="tcard-role">${note}</span>
+          <span class="tcard-cost">● ${t.cost}</span>
+        </button>`;
+      }
       const afford = this.gold >= t.cost;
       const dps = Math.round(dpsOf(key, 1));
       const tags = [
@@ -871,6 +953,13 @@ class Game {
 
   build(pad, type) {
     if (!type || !TOWERS[type]) return;
+    // Every build path funnels through here, so this is the one place the
+    // unlock rule has to hold — menu, hotkey, or anything added later.
+    if (!isUnlocked(type, this.unlockState())) {
+      Sound.play('deny');
+      this.toast(`${TOWERS[type].name} IS LOCKED`);
+      return;
+    }
     const cost = TOWERS[type].cost;
     if (pad.tower) return;
     if (this.gold < cost) { Sound.play('deny'); this.toast('NOT ENOUGH GOLD'); return; }
@@ -1008,6 +1097,19 @@ class Game {
     const muzzleX = tower.x + Math.cos(tower.angle) * 26;
     const muzzleY = tower.y + Math.sin(tower.angle) * 26;
 
+    if (s.aura) {
+      // No projectile and no aiming: a void spire grinds down everything
+      // standing in its field, which is why its range is the shortest here.
+      this.field(tower, s);
+      Sound.play('zap', 80);
+      this.ring(tower.x, tower.y, '#ff5cc0', 0.22, s.range * 0.55, s.range);
+      return;
+    }
+    if (s.beam) {
+      this.lance(tower, target, s);
+      Sound.play('shot', 25);
+      return;
+    }
     if (tower.type === 'arc') {
       this.chain(tower, target, s);
       Sound.play('zap', 55);
@@ -1051,6 +1153,35 @@ class Game {
     }
     tower.arc = points;
     tower.arcLife = 0.13;
+  }
+
+  /* A rail lance fires a line, not a shot: everything within `beam` pixels of
+     the segment from the muzzle to the edge of range takes the hit, so a
+     column walking the road is punished and a single scattered flier is not. */
+  lance(tower, target, s) {
+    const x2 = tower.x + Math.cos(tower.angle) * s.range;
+    const y2 = tower.y + Math.sin(tower.angle) * s.range;
+    const dx = x2 - tower.x, dy = y2 - tower.y, len2 = dx * dx + dy * dy || 1;
+    for (const e of this.enemies) {
+      if (!e.active || !canTarget(s, e)) continue;
+      const t = clamp(((e.x - tower.x) * dx + (e.y - tower.y) * dy) / len2, 0, 1);
+      const d = Math.hypot(e.x - (tower.x + dx * t), e.y - (tower.y + dy * t));
+      if (d <= s.beam + e.size) this.damage(e, s.damage, s.pierce, tower);
+    }
+    tower.beam = { x1: tower.x, y1: tower.y, x2, y2 };
+    tower.beamLife = 0.16;
+    this.burst(tower.x + Math.cos(tower.angle) * 30, tower.y + Math.sin(tower.angle) * 30, s.color, 10);
+  }
+
+  /* The void spire's pulse. It hits both layers by design: the tower has no
+     barrel to elevate, so there is nothing for a flier to fly over. */
+  field(tower, s) {
+    for (const e of this.enemies) {
+      if (!e.active) continue;
+      if (Math.hypot(e.x - tower.x, e.y - tower.y) > s.range) continue;
+      if (s.slow) { e.slow = Math.max(e.slow, s.slow); e.slowTime = Math.max(e.slowTime, s.slowTime); }
+      this.damage(e, s.damage, s.pierce, tower);
+    }
   }
 
   damage(enemy, raw, pierce, tower) {
@@ -1278,6 +1409,7 @@ class Game {
     for (const t of this.towers) this.drawTower(c, t);
     for (const e of this.enemies) if (e.active && e.flying) this.drawEnemy(c, e);
     for (const t of this.towers) if (t.arc) this.drawArc(c, t);
+    for (const t of this.towers) if (t.beam) this.drawBeam(c, t);
     for (const p of this.projectiles) if (p.active) this.drawProjectile(c, p);
 
     for (const q of this.particles) {
@@ -1459,6 +1591,18 @@ class Game {
     c.restore();
   }
 
+  drawBeam(c, t) {
+    const b = t.beam, a = Math.max(0, t.beamLife / 0.16);
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    for (const [w, col, alpha] of [[16, '#4aa8ff', 0.20], [7, '#bfe9ff', 0.55], [2.5, '#ffffff', 0.9]]) {
+      c.globalAlpha = a * alpha;
+      c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(b.x1, b.y1); c.lineTo(b.x2, b.y2); c.stroke();
+    }
+    c.restore();
+  }
+
   drawEnemy(c, e) {
     const ox = Math.cos(e.angle + Math.PI / 2) * e.lane;
     const oy = Math.sin(e.angle + Math.PI / 2) * e.lane;
@@ -1502,7 +1646,7 @@ function boot() {
     window.funTDGame = new Game();
     // Published for the art layer, the balance simulator and the tests.
     window.FUN_TD_MODEL = {
-      MAP, BAL, TOWERS, ENEMIES, WAVES, TOWER_ORDER, TARGET_MODES,
+      MAP, BAL, TOWERS, ENEMIES, WAVES, TOWER_ORDER, TARGET_MODES, UNLOCKS, isUnlocked,
       towerStats, upgradeCost, investedAt, dpsOf, damageAfterArmor, canTarget,
       enemyStats, waveIntel, waveEffectiveHp, waveSpawnSeconds, countWave, pathLength
     };

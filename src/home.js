@@ -148,13 +148,67 @@ function railTarget(id) {
   return {
     railSectors: () => $('campaignMapButton'),
     railUpgrades: () => $('warRoomButton'),
-    railCollection: () => $('warRoomButton'),
     railStats: () => $('campaignButton')
   }[id];
 }
 
+/* ------------------------------------------------------------- collection */
+
+/* The tower collection. Unlocks are the reason to keep playing, so they get a
+ * screen that shows the whole roster - what you have, what is still out there,
+ * and exactly what earns it - rather than only surfacing as a greyed-out card
+ * in the build menu once you are already in a fight. */
+const TOWER_BLURB = {
+  gun:    'Rapid single-target fire. Hits air.',
+  frost:  'Chills whatever it hits, ground or air.',
+  cannon: 'Splash and armour-shred. Cannot reach air.',
+  arc:    'Lightning that jumps between packed enemies.',
+  flak:   'Air only. Bursts across a whole flight.',
+  rail:   'Fires across half the map, straight through armour.',
+  void:   'A collapsing field. No barrel, no aiming.'
+};
+
+function collectionSheet() {
+  const U = window.FUN_TD_UNLOCKS;
+  if (!U) return;
+  let el = $('collectionOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'collectionOverlay';
+    el.innerHTML = '<section class="collection-card"><div class="collection-head">' +
+      '<small>COMMAND ARMOURY</small><h2>TOWER COLLECTION</h2>' +
+      '<p id="collectionCount"></p></div><div class="collection-grid" id="collectionGrid"></div>' +
+      '<div class="collection-foot"><button id="collectionClose">RETURN</button></div></section>';
+    document.body.appendChild(el);
+    el.addEventListener('pointerdown', e => { if (e.target === el) el.classList.remove('show'); });
+    el.querySelector('#collectionClose').onclick = () => el.classList.remove('show');
+  }
+
+  const rows = U.all();
+  const model = window.FUN_TD_SECTOR_MODEL || window.FUN_TD_MODEL;
+  const TOWERS = (model && model.TOWERS) || {};
+  $('collectionCount').textContent =
+    `${rows.filter(r => r.unlocked).length} of ${rows.length} tower families unlocked`;
+  $('collectionGrid').innerHTML = rows.map(r => {
+    const t = TOWERS[r.type] || {};
+    const name = t.name || r.type.toUpperCase();
+    const layer = t.targets === 'air' ? 'AIR ONLY' : t.targets === 'both' ? 'GROUND + AIR' : 'GROUND ONLY';
+    return `<div class="collect-card${r.unlocked ? '' : ' locked'}">
+      <i style="--c:${t.color || '#6f9ac9'};--a:${t.accent || '#123'}"></i>
+      <b>${name}</b>
+      <span class="collect-layer">${r.unlocked ? layer : 'LOCKED'}</span>
+      <p>${r.unlocked ? (TOWER_BLURB[r.type] || '') : r.requirement}</p>
+      ${r.unlocked && t.cost ? `<em>● ${t.cost}</em>` : ''}
+    </div>`;
+  }).join('');
+  el.classList.add('show');
+}
+
 function wireRails() {
-  for (const id of ['railSectors', 'railUpgrades', 'railCollection', 'railStats']) {
+  const collection = $('railCollection');
+  if (collection) collection.onclick = collectionSheet;
+
+  for (const id of ['railSectors', 'railUpgrades', 'railStats']) {
     const btn = $(id);
     const target = railTarget(id);
     if (btn && target) btn.onclick = () => { const t = target(); if (t) t.click(); };
@@ -174,9 +228,14 @@ function wireRails() {
     if (sheet) sheet.classList.remove('hidden');
   };
 
-  const unlocked = window.FUN_TD_UNLOCKS ? window.FUN_TD_UNLOCKS.unlockedCount() : 4;
-  const total = window.FUN_TD_UNLOCKS ? window.FUN_TD_UNLOCKS.totalCount() : 4;
+  const U = window.FUN_TD_UNLOCKS;
+  const unlocked = U ? U.unlockedCount() : 4;
+  const total = U ? U.totalCount() : 4;
   if ($('railCollectionCount')) $('railCollectionCount').textContent = `${unlocked}/${total}`;
+  // A tower waiting to be earned is worth pointing at; one already earned is
+  // not, so the collection rail only lights up when there is something to chase.
+  const next = U && U.nextLocked();
+  if (collection) collection.title = next ? `Next tower: ${next.requirement}` : 'Tower collection';
   // Flag the upgrades rail when there is currency waiting to be spent.
   const dot = $('railUpgradesDot');
   if (dot && num('funTD_cores') > 0) dot.classList.add('on');

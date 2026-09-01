@@ -55,6 +55,25 @@ function applyMeta(TOWERS, ENEMIES) {
     if (arc.chainRange) arc.chainRange *= (1 + lvl('arcLevel') * 0.07) * (1 + lvl('arc2') * 0.08);
   }
 
+  const flak = t.flak;
+  if (flak) {
+    flak.damage *= 1 + lvl('flakLevel') * 0.06;
+    if (flak.splash) flak.splash *= 1 + lvl('flakLevel') * 0.07;
+  }
+
+  const rail = t.rail;
+  if (rail) {
+    rail.damage *= 1 + lvl('railLevel') * 0.07;
+    if (rail.beam) rail.beam *= 1 + lvl('railLevel') * 0.06;
+  }
+
+  // `void` is a reserved word, so the research key is `voidt` throughout.
+  const voidSpire = t.void;
+  if (voidSpire) {
+    voidSpire.damage *= 1 + lvl('voidLevel') * 0.07;
+    voidSpire.range *= 1 + lvl('voidLevel') * 0.05;
+  }
+
   // Challenge modifiers speed the swarm up; research never slows it down.
   const speed = M.enemySpeed || 1;
   if (speed !== 1) for (const e of Object.values(ENEMIES || {})) if (e.speed) e.speed *= speed;

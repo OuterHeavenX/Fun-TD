@@ -28,7 +28,7 @@ export function loadModel(source = fs.readFileSync(RUNTIME, 'utf8')) {
   vm.runInContext(
     block + '\n;globalThis.__model={MAP,BAL,TOWERS,ENEMIES,WAVES,waveHpScale,waveRewardScale,' +
     'countWave,enemyStats,damageAfterArmor,towerStats,upgradeCost,investedAt,dpsOf,canTarget,' +
-    'waveIntel,waveEffectiveHp,waveSpawnSeconds,pathLength};',
+    'waveIntel,waveEffectiveHp,waveSpawnSeconds,pathLength,UNLOCKS,isUnlocked,TOWER_ORDER};',
     context
   );
   return context.__model;
@@ -299,6 +299,10 @@ function spend(state, waveIndex, skill = SKILLS.optimal) {
     for (const pad of state.pads) {
       if (pad.tower) continue;
       for (const type of Object.keys(M.TOWERS)) {
+        // A first-time player has only the starting families plus whatever
+        // this run has already earned; simulating the full roster would
+        // report a curve nobody plays.
+        if (!M.isUnlocked(type, { bestWave: waveIndex, cleared: new Set() })) continue;
         const cost = M.TOWERS[type].cost;
         if (cost > state.gold) continue;
         const s = M.towerStats(type, 1);
